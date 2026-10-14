@@ -16,13 +16,18 @@ public class InMemoryPetCatalog : IPetCatalog
                   AgeInMonths = 36, Size = PetSize.Medium, Status = ListingStatus.Adopted }
     };
 
-    public IReadOnlyList<Pet> GetAvailablePets()
+    public async Task<IReadOnlyList<Pet>> GetAvailablePetsAsync(CancellationToken cancellationToken)
     {
+        // Simulates a database round trip.
+        await Task.Delay(200, cancellationToken);
+
         return _pets.Where(p => p.IsBrowsable()).ToList();
     }
 
-    public Pet? GetById(int id)
+    public async Task<Pet?> GetByIdAsync(int id, CancellationToken cancellationToken)
     {
+        await Task.Delay(200, cancellationToken);
+
         return _pets.FirstOrDefault(p => p.Id == id);
     }
 }

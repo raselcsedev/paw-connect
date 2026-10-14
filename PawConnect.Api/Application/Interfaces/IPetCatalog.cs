@@ -4,6 +4,6 @@ namespace PawConnect.Api.Application.Interfaces;
 
 public interface IPetCatalog
 {
-    IReadOnlyList<Pet> GetAvailablePets();
-    Pet? GetById(int id);
+    Task<IReadOnlyList<Pet>> GetAvailablePetsAsync(CancellationToken cancellationToken);
+    Task<Pet?> GetByIdAsync(int id, CancellationToken cancellationToken);
 }
