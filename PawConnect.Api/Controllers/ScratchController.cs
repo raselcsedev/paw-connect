@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using PawConnect.Api.Application.Interfaces;
 using PawConnect.Api.Domain.Entities;
 using PawConnect.Api.Domain.Enums;
 
@@ -8,6 +9,13 @@ namespace PawConnect.Api.Controllers;
 [Route("api/scratch")]
 public class ScratchController : ControllerBase
 {
+    private readonly IPetCatalog _catalog;
+
+    public ScratchController(IPetCatalog catalog)
+    {
+        _catalog = catalog;
+    }
+
     [HttpGet("pet")]
     public IActionResult GetSamplePet()
     {
@@ -23,5 +31,24 @@ public class ScratchController : ControllerBase
         };
 
         return Ok(new { pet, isBrowsable = pet.IsBrowsable() });
+    }
+
+    [HttpGet("pets")]
+    public IActionResult GetPets()
+    {
+        return Ok(_catalog.GetAvailablePets());
+    }
+
+    [HttpGet("pets/{id:int}")]
+    public IActionResult GetPet(int id)
+    {
+        var pet = _catalog.GetById(id);
+
+        if (pet is null)
+        {
+            return NotFound();
+        }
+
+        return Ok(pet);
     }
 }
