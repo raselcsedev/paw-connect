@@ -1,9 +1,17 @@
 using System.Text.Json.Serialization;
+using Microsoft.EntityFrameworkCore;
 using PawConnect.Api.Application.Interfaces;
 using PawConnect.Api.Application.Services;
+using PawConnect.Api.Infrastructure.Data;
 using PawConnect.Api.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
+
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+    ?? throw new InvalidOperationException("Connection string 'DefaultConnection' is not configured.");
+
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseMySql(connectionString, new MariaDbServerVersion(new Version(10, 4, 32))));
 
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
