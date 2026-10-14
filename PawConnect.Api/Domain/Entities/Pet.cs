@@ -13,5 +13,7 @@ public class Pet
     public ListingStatus Status { get; set; } = ListingStatus.Draft;
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
 
+    public List<PetPhoto> Photos { get; set; } = new();
+
     public bool IsBrowsable() => Status == ListingStatus.Available;
 }

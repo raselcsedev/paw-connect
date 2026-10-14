@@ -107,4 +107,66 @@ public class DbDemoController : ControllerBase
 
         return Ok(new { afterLoad, afterChange, afterSave, pet.AgeInMonths });
     }
+
+        [HttpPost("pets/{id:int}/photos")]
+    public async Task<IActionResult> AddFakePhoto(int id, CancellationToken cancellationToken)
+    {
+        var petExists = await _db.Pets.AnyAsync(p => p.Id == id, cancellationToken);
+        if (!petExists)
+        {
+            throw new NotFoundException(nameof(Pet), id);
+        }
+
+        var isFirstPhoto = !await _db.PetPhotos.AnyAsync(ph => ph.PetId == id, cancellationToken);
+
+        var photo = new PetPhoto
+        {
+            PetId = id,
+            StoredFileName = $"{Guid.NewGuid():N}.jpg",
+            SizeInBytes = 1024,
+            IsPrimary = isFirstPhoto
+        };
+
+        _db.PetPhotos.Add(photo);
+        await _db.SaveChangesAsync(cancellationToken);
+
+        return Ok(new { photo.Id, photo.PetId, photo.StoredFileName, photo.IsPrimary });
+    }
+
+    [HttpGet("pets/{id:int}/loading-demo")]
+    public async Task<IActionResult> LoadingDemo(int id, CancellationToken cancellationToken)
+    {
+        var withoutInclude = await _db.Pets
+            .AsNoTracking()
+            .FirstOrDefaultAsync(p => p.Id == id, cancellationToken)
+            ?? throw new NotFoundException(nameof(Pet), id);
+
+        var withInclude = await _db.Pets
+            .AsNoTracking()
+            .Include(p => p.Photos)
+            .FirstAsync(p => p.Id == id, cancellationToken);
+
+        return Ok(new
+        {
+            photosWithoutInclude = withoutInclude.Photos.Count,
+            photosWithInclude = withInclude.Photos.Count
+        });
+    }
+
+    [HttpGet("pets-with-photos")]
+    public async Task<IActionResult> PetsWithPhotos(CancellationToken cancellationToken)
+    {
+        var result = await _db.Pets
+            .AsNoTracking()
+            .Select(p => new
+            {
+                p.Id,
+                p.Name,
+                photoCount = p.Photos.Count,
+                photos = p.Photos.Select(ph => new { ph.Id, ph.StoredFileName, ph.IsPrimary })
+            })
+            .ToListAsync(cancellationToken);
+
+        return Ok(result);
+    }
 }
