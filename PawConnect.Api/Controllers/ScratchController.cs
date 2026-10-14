@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using PawConnect.Api.Application.Interfaces;
 using PawConnect.Api.Domain.Entities;
 using PawConnect.Api.Domain.Enums;
+using PawConnect.Api.Domain.Exceptions;
 
 namespace PawConnect.Api.Controllers;
 
@@ -45,12 +46,8 @@ public class ScratchController : ControllerBase
     [HttpGet("pets/{id:int}")]
     public async Task<IActionResult> GetPet(int id, CancellationToken cancellationToken)
     {
-        var pet = await _catalog.GetByIdAsync(id, cancellationToken);
-
-        if (pet is null)
-        {
-            return NotFound();
-        }
+        var pet = await _catalog.GetByIdAsync(id, cancellationToken)
+                  ?? throw new NotFoundException(nameof(Pet), id);
 
         return Ok(pet);
     }
@@ -70,4 +67,82 @@ public class ScratchController : ControllerBase
             throw;
         }
     }
+    [HttpGet("search")]
+    public async Task<IActionResult> Search(
+    [FromQuery] Species? species,
+    [FromQuery] PetSize? size,
+    [FromQuery] int? minAgeMonths,
+    [FromQuery] int? maxAgeMonths,
+    [FromQuery] string? q,
+    [FromQuery] string sort = "newest",
+    [FromQuery] int page = 1,
+    [FromQuery] int pageSize = 3,
+    CancellationToken cancellationToken = default)
+    {
+        page = Math.Max(page, 1);
+        pageSize = Math.Clamp(pageSize, 1, 50);
+
+        var all = await _catalog.GetAllAsync(cancellationToken);
+
+        IEnumerable<Pet> query = all.Where(p => p.IsBrowsable());
+
+        if (species.HasValue)
+        {
+            query = query.Where(p => p.Species == species.Value);
+        }
+
+        if (size.HasValue)
+        {
+            query = query.Where(p => p.Size == size.Value);
+        }
+
+        if (minAgeMonths.HasValue)
+        {
+            query = query.Where(p => p.AgeInMonths >= minAgeMonths.Value);
+        }
+
+        if (maxAgeMonths.HasValue)
+        {
+            query = query.Where(p => p.AgeInMonths <= maxAgeMonths.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(q))
+        {
+            query = query.Where(p =>
+                p.Name.Contains(q, StringComparison.OrdinalIgnoreCase) ||
+                (p.Breed?.Contains(q, StringComparison.OrdinalIgnoreCase) ?? false));
+        }
+
+        query = sort switch
+        {
+            "age" => query.OrderBy(p => p.AgeInMonths),
+            "name" => query.OrderBy(p => p.Name),
+            _ => query.OrderByDescending(p => p.CreatedAtUtc)
+        };
+
+        var totalCount = query.Count();
+
+        var items = query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(p => new { p.Id, p.Name, p.Species, p.Breed, p.AgeInMonths })
+            .ToList();
+
+        return Ok(new
+        {
+            page,
+            pageSize,
+            totalCount,
+            totalPages = (int)Math.Ceiling(totalCount / (double)pageSize),
+            items
+        });
+    }
+
+    [HttpGet("boom")]
+    public IActionResult Boom() =>
+        throw new InvalidOperationException("Internal detail: connection string is Server=secret;Password=hunter2");
+
+    [HttpGet("conflict")]
+    public IActionResult ConflictDemo() =>
+        throw new ConflictException("You already have an active application for this pet.");
 }
