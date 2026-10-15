@@ -20,17 +20,26 @@ public class GlobalExceptionHandler : IExceptionHandler
     {
         if (exception is OperationCanceledException && httpContext.RequestAborted.IsCancellationRequested)
         {
-            return true; // the client left, so there is nobody to answer
+            return true;
         }
 
-        var (status, title, detail) = exception switch
+        ProblemDetails problem = exception switch
         {
-            NotFoundException => (StatusCodes.Status404NotFound, "Resource not found", exception.Message),
-            ConflictException => (StatusCodes.Status409Conflict, "Conflict", exception.Message),
-            _ => (StatusCodes.Status500InternalServerError, "An unexpected error occurred", "Please try again later.")
+            NotFoundException => Build(StatusCodes.Status404NotFound, "Resource not found", exception.Message),
+            ConflictException => Build(StatusCodes.Status409Conflict, "Conflict", exception.Message),
+            AuthenticationFailedException => Build(StatusCodes.Status401Unauthorized, "Authentication failed", exception.Message),
+            ForbiddenException => Build(StatusCodes.Status403Forbidden, "Forbidden", exception.Message),
+            AppValidationException validation => new ValidationProblemDetails(validation.Errors)
+            {
+                Status = StatusCodes.Status400BadRequest,
+                Title = "One or more validation errors occurred."
+            },
+            _ => Build(StatusCodes.Status500InternalServerError, "An unexpected error occurred", "Please try again later.")
         };
 
-        if (status == StatusCodes.Status500InternalServerError)
+        problem.Instance = httpContext.Request.Path;
+
+        if (problem.Status == StatusCodes.Status500InternalServerError)
         {
             _logger.LogError(exception, "Unhandled exception on {Path}", httpContext.Request.Path);
         }
@@ -39,21 +48,26 @@ public class GlobalExceptionHandler : IExceptionHandler
             _logger.LogWarning("Handled {ExceptionType}: {Message}", exception.GetType().Name, exception.Message);
         }
 
-        var problem = new ProblemDetails
+        if (problem.Status == StatusCodes.Status401Unauthorized)
         {
-            Status = status,
-            Title = title,
-            Detail = detail,
-            Instance = httpContext.Request.Path
-        };
+            httpContext.Response.Headers.WWWAuthenticate = "Bearer";
+        }
 
-        httpContext.Response.StatusCode = status;
+        httpContext.Response.StatusCode = problem.Status ?? StatusCodes.Status500InternalServerError;
         await httpContext.Response.WriteAsJsonAsync(
             problem,
+            problem.GetType(),
             options: null,
             contentType: "application/problem+json",
             cancellationToken: cancellationToken);
 
         return true;
     }
+
+    private static ProblemDetails Build(int status, string title, string detail) => new()
+    {
+        Status = status,
+        Title = title,
+        Detail = detail
+    };
 }
