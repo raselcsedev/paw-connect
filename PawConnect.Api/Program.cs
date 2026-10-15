@@ -4,6 +4,8 @@ using PawConnect.Api.Application.Interfaces;
 using PawConnect.Api.Application.Services;
 using PawConnect.Api.Infrastructure.Data;
 using PawConnect.Api.Middleware;
+using PawConnect.Api.Domain.Entities;
+using PawConnect.Api.Infrastructure.Identity;
 
 var builder = WebApplication.CreateBuilder(args);
 

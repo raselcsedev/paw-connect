@@ -1,9 +1,10 @@
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using PawConnect.Api.Domain.Entities;
 
 namespace PawConnect.Api.Infrastructure.Data;
 
-public class AppDbContext : DbContext
+public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, Guid>
 {
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
     {
@@ -33,3 +34,4 @@ public class AppDbContext : DbContext
         return base.SaveChangesAsync(cancellationToken);
     }
 }
+
