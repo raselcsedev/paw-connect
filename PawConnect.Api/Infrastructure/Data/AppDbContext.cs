@@ -12,6 +12,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
 
     public DbSet<Pet> Pets => Set<Pet>();
     public DbSet<PetPhoto> PetPhotos => Set<PetPhoto>();
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

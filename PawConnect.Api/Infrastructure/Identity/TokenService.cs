@@ -1,4 +1,6 @@
+using System.Buffers.Text;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.JsonWebTokens;
@@ -43,5 +45,21 @@ public class TokenService : ITokenService
 
         var token = new JsonWebTokenHandler().CreateToken(descriptor);
         return (token, expiresAtUtc);
+    }
+
+    public RefreshTokenResult CreateRefreshToken()
+    {
+        var bytes = RandomNumberGenerator.GetBytes(64);
+        var token = Base64Url.EncodeToString(bytes);
+
+        return new RefreshTokenResult(
+            token,
+            HashToken(token),
+            DateTime.UtcNow.AddDays(_options.RefreshTokenDays));
+    }
+
+    public string HashToken(string token)
+    {
+        return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(token)));
     }
 }

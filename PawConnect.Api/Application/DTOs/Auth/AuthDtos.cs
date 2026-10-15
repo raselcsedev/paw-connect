@@ -28,4 +28,15 @@ public class LoginRequest
 
 public record UserDto(Guid Id, string Email, string DisplayName, string Role);
 
-public record AuthResponse(string AccessToken, DateTime AccessTokenExpiresAtUtc, UserDto User);
+public class RefreshTokenRequest
+{
+    [Required, StringLength(200, MinimumLength = 20)]
+    public string RefreshToken { get; set; } = string.Empty;
+}
+
+public record AuthResponse(
+    string AccessToken,
+    DateTime AccessTokenExpiresAtUtc,
+    string RefreshToken,
+    DateTime RefreshTokenExpiresAtUtc,
+    UserDto User);

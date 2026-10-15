@@ -1,29 +1,38 @@
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using PawConnect.Api.Application.DTOs.Auth;
 using PawConnect.Api.Application.Interfaces;
 using PawConnect.Api.Domain;
 using PawConnect.Api.Domain.Entities;
 using PawConnect.Api.Domain.Enums;
 using PawConnect.Api.Domain.Exceptions;
+using PawConnect.Api.Infrastructure.Data;
 
 namespace PawConnect.Api.Application.Services;
 
 public class AuthService : IAuthService
 {
     private const string InvalidCredentials = "Invalid email or password.";
+    private const string InvalidRefresh = "The refresh token is not valid.";
 
     private readonly UserManager<ApplicationUser> _users;
     private readonly ITokenService _tokens;
+    private readonly AppDbContext _db;
     private readonly ILogger<AuthService> _logger;
 
-    public AuthService(UserManager<ApplicationUser> users, ITokenService tokens, ILogger<AuthService> logger)
+    public AuthService(
+        UserManager<ApplicationUser> users,
+        ITokenService tokens,
+        AppDbContext db,
+        ILogger<AuthService> logger)
     {
         _users = users;
         _tokens = tokens;
+        _db = db;
         _logger = logger;
     }
 
-    public async Task<AuthResponse> RegisterAsync(RegisterRequest request)
+    public async Task<AuthResponse> RegisterAsync(RegisterRequest request, CancellationToken cancellationToken)
     {
         var email = request.Email.Trim();
 
@@ -55,10 +64,10 @@ public class AuthService : IAuthService
         }
 
         _logger.LogInformation("User {UserId} registered as {Role}", user.Id, request.Role);
-        return BuildResponse(user, request.Role);
+        return await IssueTokensAsync(user, request.Role, Guid.NewGuid(), cancellationToken);
     }
 
-    public async Task<AuthResponse> LoginAsync(LoginRequest request)
+    public async Task<AuthResponse> LoginAsync(LoginRequest request, CancellationToken cancellationToken)
     {
         var user = await _users.FindByEmailAsync(request.Email.Trim());
 
@@ -88,7 +97,80 @@ public class AuthService : IAuthService
 
         var role = await GetRoleAsync(user);
         _logger.LogInformation("User {UserId} logged in", user.Id);
-        return BuildResponse(user, role);
+        return await IssueTokensAsync(user, role, Guid.NewGuid(), cancellationToken);
+    }
+
+    public async Task<AuthResponse> RefreshAsync(string refreshToken, CancellationToken cancellationToken)
+    {
+        var hash = _tokens.HashToken(refreshToken);
+
+        var stored = await _db.RefreshTokens
+            .AsNoTracking()
+            .FirstOrDefaultAsync(t => t.TokenHash == hash, cancellationToken)
+            ?? throw new AuthenticationFailedException(InvalidRefresh);
+
+        var now = DateTime.UtcNow;
+
+        if (stored.RevokedAtUtc is not null)
+        {
+            await RevokeFamilyAsync(stored.FamilyId, now, cancellationToken);
+            _logger.LogWarning(
+                "Refresh token reuse detected for user {UserId}; family {FamilyId} revoked",
+                stored.UserId, stored.FamilyId);
+            throw new AuthenticationFailedException(InvalidRefresh);
+        }
+
+        if (stored.ExpiresAtUtc <= now)
+        {
+            throw new AuthenticationFailedException(InvalidRefresh);
+        }
+
+        var user = await _users.FindByIdAsync(stored.UserId.ToString());
+
+        if (user is null)
+        {
+            await RevokeFamilyAsync(stored.FamilyId, now, cancellationToken);
+            throw new AuthenticationFailedException(InvalidRefresh);
+        }
+
+        if (user.Status == AccountStatus.Disabled)
+        {
+            await RevokeFamilyAsync(stored.FamilyId, now, cancellationToken);
+            throw new ForbiddenException("This account has been disabled.");
+        }
+
+        var claimed = await _db.RefreshTokens
+            .Where(t => t.Id == stored.Id && t.RevokedAtUtc == null)
+            .ExecuteUpdateAsync(s => s.SetProperty(t => t.RevokedAtUtc, (DateTime?)now), cancellationToken);
+
+        if (claimed == 0)
+        {
+            await RevokeFamilyAsync(stored.FamilyId, now, cancellationToken);
+            _logger.LogWarning(
+                "Concurrent refresh of one token for user {UserId}; family {FamilyId} revoked",
+                stored.UserId, stored.FamilyId);
+            throw new AuthenticationFailedException(InvalidRefresh);
+        }
+
+        var role = await GetRoleAsync(user);
+        return await IssueTokensAsync(user, role, stored.FamilyId, cancellationToken);
+    }
+
+    public async Task LogoutAsync(string refreshToken, CancellationToken cancellationToken)
+    {
+        var hash = _tokens.HashToken(refreshToken);
+
+        var stored = await _db.RefreshTokens
+            .AsNoTracking()
+            .FirstOrDefaultAsync(t => t.TokenHash == hash, cancellationToken);
+
+        if (stored is null)
+        {
+            return;
+        }
+
+        await RevokeFamilyAsync(stored.FamilyId, DateTime.UtcNow, cancellationToken);
+        _logger.LogInformation("User {UserId} logged out", stored.UserId);
     }
 
     public async Task<UserDto> GetCurrentUserAsync(Guid userId)
@@ -103,16 +185,43 @@ public class AuthService : IAuthService
         return ToUserDto(user, await GetRoleAsync(user));
     }
 
+    private async Task<AuthResponse> IssueTokensAsync(
+        ApplicationUser user, string role, Guid familyId, CancellationToken cancellationToken)
+    {
+        var (accessToken, accessExpiresAtUtc) = _tokens.CreateAccessToken(user, role);
+        var refresh = _tokens.CreateRefreshToken();
+
+        _db.RefreshTokens.Add(new RefreshToken
+        {
+            Id = Guid.NewGuid(),
+            UserId = user.Id,
+            FamilyId = familyId,
+            TokenHash = refresh.Hash,
+            CreatedAtUtc = DateTime.UtcNow,
+            ExpiresAtUtc = refresh.ExpiresAtUtc
+        });
+
+        await _db.SaveChangesAsync(cancellationToken);
+
+        return new AuthResponse(
+            accessToken,
+            accessExpiresAtUtc,
+            refresh.Token,
+            refresh.ExpiresAtUtc,
+            ToUserDto(user, role));
+    }
+
+    private Task<int> RevokeFamilyAsync(Guid familyId, DateTime now, CancellationToken cancellationToken)
+    {
+        return _db.RefreshTokens
+            .Where(t => t.FamilyId == familyId && t.RevokedAtUtc == null)
+            .ExecuteUpdateAsync(s => s.SetProperty(t => t.RevokedAtUtc, (DateTime?)now), cancellationToken);
+    }
+
     private async Task<string> GetRoleAsync(ApplicationUser user)
     {
         var roles = await _users.GetRolesAsync(user);
         return roles.FirstOrDefault() ?? Roles.Adopter;
-    }
-
-    private AuthResponse BuildResponse(ApplicationUser user, string role)
-    {
-        var (token, expiresAtUtc) = _tokens.CreateAccessToken(user, role);
-        return new AuthResponse(token, expiresAtUtc, ToUserDto(user, role));
     }
 
     private static UserDto ToUserDto(ApplicationUser user, string role) =>
