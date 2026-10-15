@@ -27,6 +27,13 @@ builder.Services.AddScoped<IPetService, PetService>();
 
 var app = builder.Build();
 
+if (app.Environment.IsDevelopment())
+{
+    using var scope = app.Services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    await DevelopmentSeeder.SeedAsync(db);
+}
+
 app.UseExceptionHandler();
 
 if (app.Environment.IsDevelopment())

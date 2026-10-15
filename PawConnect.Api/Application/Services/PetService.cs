@@ -6,6 +6,7 @@ using PawConnect.Api.Domain.Entities;
 using PawConnect.Api.Domain.Enums;
 using PawConnect.Api.Domain.Exceptions;
 using PawConnect.Api.Infrastructure.Data;
+using PawConnect.Api.Application.DTOs.Common;
 
 namespace PawConnect.Api.Application.Services;
 
@@ -42,16 +43,83 @@ public class PetService : IPetService
         return pet.ToDto();
     }
 
-    public async Task<IReadOnlyList<PetSummaryDto>> GetAvailableAsync(CancellationToken cancellationToken)
+    public async Task<PagedResult<PetSummaryDto>> SearchAsync(
+        PetQueryParameters parameters, CancellationToken cancellationToken)
     {
-        return await _db.Pets
+        IQueryable<Pet> query = _db.Pets
             .AsNoTracking()
-            .Where(p => p.Status == ListingStatus.Available)
-            .OrderByDescending(p => p.CreatedAtUtc)
-            .Take(50)
+            .Where(p => p.Status == ListingStatus.Available);
+
+        if (parameters.Species.HasValue)
+        {
+            var species = parameters.Species.Value;
+            query = query.Where(p => p.Species == species);
+        }
+
+        if (parameters.Size.HasValue)
+        {
+            var size = parameters.Size.Value;
+            query = query.Where(p => p.Size == size);
+        }
+
+        if (parameters.MinAgeMonths.HasValue)
+        {
+            var min = parameters.MinAgeMonths.Value;
+            query = query.Where(p => p.AgeInMonths >= min);
+        }
+
+        if (parameters.MaxAgeMonths.HasValue)
+        {
+            var max = parameters.MaxAgeMonths.Value;
+            query = query.Where(p => p.AgeInMonths <= max);
+        }
+
+        if (parameters.AvailabilityType.HasValue)
+        {
+            var type = parameters.AvailabilityType.Value;
+            query = query.Where(p => p.AvailabilityType == type || p.AvailabilityType == AvailabilityType.Both);
+        }
+
+        if (!string.IsNullOrWhiteSpace(parameters.City))
+        {
+            var city = parameters.City.Trim();
+            query = query.Where(p => p.City == city);
+        }
+
+        if (parameters.Vaccinated.HasValue)
+        {
+            var vaccinated = parameters.Vaccinated.Value;
+            query = query.Where(p => p.IsVaccinated == vaccinated);
+        }
+
+        if (!string.IsNullOrWhiteSpace(parameters.Q))
+        {
+            var term = parameters.Q.Trim();
+            query = query.Where(p =>
+                p.Name.Contains(term) ||
+                (p.Breed != null && p.Breed.Contains(term)) ||
+                (p.Description != null && p.Description.Contains(term)));
+        }
+
+        query = parameters.Sort switch
+        {
+            PetSort.Oldest => query.OrderBy(p => p.CreatedAtUtc).ThenBy(p => p.Id),
+            PetSort.AgeAsc => query.OrderBy(p => p.AgeInMonths).ThenBy(p => p.Id),
+            PetSort.AgeDesc => query.OrderByDescending(p => p.AgeInMonths).ThenBy(p => p.Id),
+            PetSort.NameAsc => query.OrderBy(p => p.Name).ThenBy(p => p.Id),
+            _ => query.OrderByDescending(p => p.CreatedAtUtc).ThenByDescending(p => p.Id)
+        };
+
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        var items = await query
+            .Skip((parameters.Page - 1) * parameters.PageSize)
+            .Take(parameters.PageSize)
             .Select(p => new PetSummaryDto(
                 p.Id, p.Name, p.Species, p.Breed, p.AgeInMonths, p.Size, p.City, p.AvailabilityType))
             .ToListAsync(cancellationToken);
+
+        return new PagedResult<PetSummaryDto>(items, parameters.Page, parameters.PageSize, totalCount);
     }
 
     public async Task<PetDto> UpdateAsync(int id, UpdatePetRequest request, CancellationToken cancellationToken)

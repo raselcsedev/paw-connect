@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using PawConnect.Api.Application.DTOs.Pets;
 using PawConnect.Api.Application.Interfaces;
+using PawConnect.Api.Application.DTOs.Common;
 
 namespace PawConnect.Api.Controllers;
 
@@ -15,11 +16,14 @@ public class PetsController : ControllerBase
         _pets = pets;
     }
 
+    /// <summary>Browse available pets with filtering, sorting and pagination.</summary>
     [HttpGet]
-    [ProducesResponseType(typeof(IReadOnlyList<PetSummaryDto>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<IReadOnlyList<PetSummaryDto>>> GetAvailable(CancellationToken cancellationToken)
+    [ProducesResponseType(typeof(PagedResult<PetSummaryDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<PagedResult<PetSummaryDto>>> Search(
+        [FromQuery] PetQueryParameters query, CancellationToken cancellationToken)
     {
-        return Ok(await _pets.GetAvailableAsync(cancellationToken));
+        return Ok(await _pets.SearchAsync(query, cancellationToken));
     }
 
     [HttpGet("{id:int}")]

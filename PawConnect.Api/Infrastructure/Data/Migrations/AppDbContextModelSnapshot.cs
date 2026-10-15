@@ -106,7 +106,11 @@ namespace PawConnect.Api.Infrastructure.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Status");
+                    b.HasIndex("Status", "City");
+
+                    b.HasIndex("Status", "CreatedAtUtc");
+
+                    b.HasIndex("Status", "Species");
 
                     b.ToTable("Pets", (string)null);
                 });

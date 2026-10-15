@@ -26,6 +26,8 @@ public class PetConfiguration : IEntityTypeConfiguration<Pet>
         builder.Property(p => p.AvailabilityType).HasConversion<string>().HasMaxLength(20);
         builder.Property(p => p.Status).HasConversion<string>().HasMaxLength(20);
 
-        builder.HasIndex(p => p.Status);
+        builder.HasIndex(p => new { p.Status, p.CreatedAtUtc });
+        builder.HasIndex(p => new { p.Status, p.Species });
+        builder.HasIndex(p => new { p.Status, p.City });
     }
 }
