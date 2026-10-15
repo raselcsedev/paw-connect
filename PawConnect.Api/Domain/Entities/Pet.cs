@@ -1,4 +1,5 @@
 using PawConnect.Api.Domain.Enums;
+using PawConnect.Api.Domain.Exceptions;
 
 namespace PawConnect.Api.Domain.Entities;
 
@@ -16,4 +17,19 @@ public class Pet
     public List<PetPhoto> Photos { get; set; } = new();
 
     public bool IsBrowsable() => Status == ListingStatus.Available;
+
+    public void SetAvailability(ListingStatus newStatus)
+    {
+        if (Status is ListingStatus.Adopted or ListingStatus.Archived)
+        {
+            throw new ConflictException($"A pet that is {Status} cannot change availability.");
+        }
+
+        if (newStatus is not (ListingStatus.Draft or ListingStatus.Available or ListingStatus.Unavailable))
+        {
+            throw new ConflictException($"Status '{newStatus}' cannot be set through this operation.");
+        }
+
+        Status = newStatus;
+    }
 }
