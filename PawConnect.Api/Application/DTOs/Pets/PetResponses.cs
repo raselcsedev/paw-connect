@@ -8,7 +8,9 @@ public record PetSummaryDto(
     Species Species,
     string? Breed,
     int AgeInMonths,
-    PetSize Size);
+    PetSize Size,
+    string City,
+    AvailabilityType AvailabilityType);
 
 public record PetDto(
     int Id,
@@ -17,5 +19,16 @@ public record PetDto(
     string? Breed,
     int AgeInMonths,
     PetSize Size,
+    PetSex Sex,
+    string? Description,
+    string? HealthStatus,
+    bool IsVaccinated,
+    bool IsSpayedNeutered,
+    string? SpecialCareRequirements,
+    AvailabilityType AvailabilityType,
+    string? Requirements,
+    string City,
+    string? Area,
     ListingStatus Status,
-    DateTime CreatedAtUtc);
+    DateTime CreatedAtUtc,
+    DateTime UpdatedAtUtc);

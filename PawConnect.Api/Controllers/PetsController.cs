@@ -49,4 +49,25 @@ public class PetsController : ControllerBase
     {
         return Ok(await _pets.ChangeAvailabilityAsync(id, request, cancellationToken));
     }
+
+    [HttpPut("{id:int}")]
+    [ProducesResponseType(typeof(PetDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<PetDto>> Update(
+    int id, UpdatePetRequest request, CancellationToken cancellationToken)
+    {
+        return Ok(await _pets.UpdateAsync(id, request, cancellationToken));
+    }
+
+    /// <summary>Archives the listing (soft delete). Archiving twice is allowed.</summary>
+    [HttpDelete("{id:int}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Archive(int id, CancellationToken cancellationToken)
+    {
+        await _pets.ArchiveAsync(id, cancellationToken);
+        return NoContent();
+    }
 }
