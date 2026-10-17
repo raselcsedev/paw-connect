@@ -122,6 +122,21 @@ builder.Services.AddRateLimiter(options =>
                 Window = TimeSpan.FromMinutes(1),
                 QueueLimit = 0
             }));
+    options.AddPolicy(Policies.SubmitRateLimit, httpContext =>
+{
+var key = httpContext.User.FindFirst("sub")?.Value
+      ?? httpContext.Connection.RemoteIpAddress?.ToString()
+      ?? "unknown";
+
+return RateLimitPartition.GetFixedWindowLimiter(
+key,
+_ => new FixedWindowRateLimiterOptions
+{
+    PermitLimit = 10,
+    Window = TimeSpan.FromHours(1),
+    QueueLimit = 0
+});
+});
 
     options.OnRejected = (context, _) =>
     {
@@ -200,9 +215,10 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-app.UseRateLimiter();
 app.UseAuthentication();
+app.UseRateLimiter();
 app.UseAuthorization();
 app.MapControllers();
+
 
 app.Run();

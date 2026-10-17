@@ -7,4 +7,5 @@ public static class Policies
     public const string ApplyForPets = "ApplyForPets";
     public const string AdminOnly = "AdminOnly";
     public const string AuthRateLimit = "auth";
+    public const string SubmitRateLimit = "submit";
 }

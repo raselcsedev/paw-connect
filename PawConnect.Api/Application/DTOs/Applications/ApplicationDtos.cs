@@ -88,8 +88,15 @@ public record ApplicationDto(
     string? AdditionalNotes,
     DateTime CreatedAtUtc,
     DateTime UpdatedAtUtc,
+    DateTime? CompletedAtUtc,
     int Version,
     IReadOnlyList<StatusHistoryDto> History);
+
+public class CompleteAdoptionRequest
+{
+    [Required, Range(0, int.MaxValue)]
+    public int? Version { get; set; }
+}
 
 public class IncomingApplicationsQuery
 {

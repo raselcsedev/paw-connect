@@ -11,5 +11,8 @@ public interface IApplicationReviewService
     Task<ApplicationDto> ChangeStatusAsync(
         int id, UpdateApplicationStatusRequest request, CurrentUser owner, CancellationToken cancellationToken);
 
+    Task<ApplicationDto> CompleteAdoptionAsync(
+        int id, CompleteAdoptionRequest request, CurrentUser owner, CancellationToken cancellationToken);
+
     Task<ApplicationDto> WithdrawAsync(int id, CurrentUser applicant, CancellationToken cancellationToken);
 }

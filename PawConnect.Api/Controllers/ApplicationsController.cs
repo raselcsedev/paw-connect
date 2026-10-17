@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using PawConnect.Api.Application.DTOs.Applications;
 using PawConnect.Api.Application.DTOs.Common;
 using PawConnect.Api.Application.Interfaces;
@@ -23,12 +24,14 @@ public class ApplicationsController : ControllerBase
     /// <summary>Submit an adoption or foster application for a pet.</summary>
     [HttpPost]
     [Authorize(Policy = Policies.ApplyForPets)]
+    [EnableRateLimiting(Policies.SubmitRateLimit)]
     [ProducesResponseType(typeof(ApplicationDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     public async Task<ActionResult<ApplicationDto>> Submit(
         CreateApplicationRequest request, CancellationToken cancellationToken)
     {
@@ -101,6 +104,21 @@ public class ApplicationsController : ControllerBase
         int id, UpdateApplicationStatusRequest request, CancellationToken cancellationToken)
     {
         return Ok(await _review.ChangeStatusAsync(id, request, User.ToCurrentUser(), cancellationToken));
+    }
+
+    /// <summary>Complete an approved adoption: the pet becomes Adopted and other open applications are closed.</summary>
+    [HttpPost("{id:int}/complete-adoption")]
+    [Authorize(Policy = Policies.ManagePets)]
+    [ProducesResponseType(typeof(ApplicationDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<ApplicationDto>> CompleteAdoption(
+        int id, CompleteAdoptionRequest request, CancellationToken cancellationToken)
+    {
+        return Ok(await _review.CompleteAdoptionAsync(id, request, User.ToCurrentUser(), cancellationToken));
     }
 
     /// <summary>Withdraw your own pending application.</summary>

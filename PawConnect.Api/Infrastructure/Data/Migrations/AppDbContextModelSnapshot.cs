@@ -143,6 +143,9 @@ namespace PawConnect.Api.Infrastructure.Data.Migrations
                     b.Property<Guid>("ApplicantId")
                         .HasColumnType("char(36)");
 
+                    b.Property<int?>("ApprovedAdoptionSlot")
+                        .HasColumnType("int");
+
                     b.Property<string>("CarePlan")
                         .IsRequired()
                         .HasMaxLength(1500)
@@ -196,9 +199,16 @@ namespace PawConnect.Api.Infrastructure.Data.Migrations
                     b.Property<DateTime>("UpdatedAtUtc")
                         .HasColumnType("datetime(6)");
 
+                    b.Property<int>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
 
                     b.HasIndex("ApplicantId", "Status");
+
+                    b.HasIndex("PetId", "ApprovedAdoptionSlot")
+                        .IsUnique();
 
                     b.HasIndex("PetId", "Status");
 

@@ -58,4 +58,18 @@ public class Pet
     {
         Status = ListingStatus.Archived;
     }
+        public void MarkAdopted()
+    {
+        if (Status == ListingStatus.Adopted)
+        {
+            throw new ConflictException("This pet has already been adopted.");
+        }
+
+        if (Status is ListingStatus.Draft or ListingStatus.Archived)
+        {
+            throw new ConflictException($"A {Status} listing cannot be marked as adopted.");
+        }
+
+        Status = ListingStatus.Adopted;
+    }
 }

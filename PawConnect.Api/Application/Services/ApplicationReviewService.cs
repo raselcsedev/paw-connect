@@ -128,6 +128,52 @@ public class ApplicationReviewService : IApplicationReviewService
         return await _applications.GetByIdAsync(id, owner, cancellationToken);
     }
 
+    public async Task<ApplicationDto> CompleteAdoptionAsync(
+        int id, CompleteAdoptionRequest request, CurrentUser owner, CancellationToken cancellationToken)
+    {
+        var application = await _db.Applications
+            .Include(a => a.Pet)
+            .FirstOrDefaultAsync(a => a.Id == id, cancellationToken)
+            ?? throw new NotFoundException("Application", id);
+
+        if (application.Pet.OwnerId != owner.Id)
+        {
+            throw new NotFoundException("Application", id);
+        }
+
+        if (application.Version != request.Version)
+        {
+            throw new ConflictException(
+                "This application was changed by someone else. Reload it and try again.");
+        }
+
+        application.CompleteAdoption(owner.Id);
+        application.Pet.MarkAdopted();
+
+        var petId = application.PetId;
+
+        var competing = await _db.Applications
+            .Where(a => a.PetId == petId && a.Id != id && a.ActiveSlot != null)
+            .ToListAsync(cancellationToken);
+
+        foreach (var other in competing)
+        {
+            other.ChangeStatus(
+                ApplicationStatus.Rejected,
+                ApplicationActor.PetOwner,
+                owner.Id,
+                "Closed automatically: this pet has been adopted.");
+        }
+
+        await SaveAsync(cancellationToken);
+
+        _logger.LogInformation(
+            "AUDIT: user {OwnerId} completed adoption {ApplicationId} for pet {PetId}; {Closed} other application(s) closed",
+            owner.Id, id, petId, competing.Count);
+
+        return await _applications.GetByIdAsync(id, owner, cancellationToken);
+    }
+
     public async Task<ApplicationDto> WithdrawAsync(
         int id, CurrentUser applicant, CancellationToken cancellationToken)
     {
@@ -165,7 +211,7 @@ public class ApplicationReviewService : IApplicationReviewService
         catch (DbUpdateException ex) when (
             ex.InnerException is MySqlException { ErrorCode: MySqlErrorCode.DuplicateKeyEntry })
         {
-            throw new ConflictException("Another adoption application for this pet is already approved.");
+            throw new ConflictException("Another application for this pet is already approved.");
         }
     }
 }
