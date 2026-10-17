@@ -91,7 +91,7 @@ public class ApplicationService : IApplicationService
             UpdatedAtUtc = now
         };
 
-        application.RefreshActiveSlot();
+        application.RefreshSlots();
 
         application.History.Add(new ApplicationStatusHistory
         {

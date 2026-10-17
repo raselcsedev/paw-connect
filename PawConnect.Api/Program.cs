@@ -156,6 +156,7 @@ builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IAccountAdminService, AccountAdminService>();
 builder.Services.AddScoped<IApplicationService, ApplicationService>();
+builder.Services.AddScoped<IApplicationReviewService, ApplicationReviewService>();
 
 var app = builder.Build();
 

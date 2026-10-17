@@ -88,4 +88,46 @@ public record ApplicationDto(
     string? AdditionalNotes,
     DateTime CreatedAtUtc,
     DateTime UpdatedAtUtc,
+    int Version,
     IReadOnlyList<StatusHistoryDto> History);
+
+public class IncomingApplicationsQuery
+{
+    [EnumDataType(typeof(ApplicationStatus))]
+    public ApplicationStatus? Status { get; set; }
+
+    [EnumDataType(typeof(ApplicationType))]
+    public ApplicationType? Type { get; set; }
+
+    [Range(1, int.MaxValue)]
+    public int? PetId { get; set; }
+
+    [Range(1, 100000)]
+    public int Page { get; set; } = 1;
+
+    [Range(1, 50)]
+    public int PageSize { get; set; } = 12;
+}
+
+public class UpdateApplicationStatusRequest
+{
+    [Required, EnumDataType(typeof(ApplicationStatus))]
+    public ApplicationStatus? Status { get; set; }
+
+    [Required, Range(0, int.MaxValue)]
+    public int? Version { get; set; }
+
+    [StringLength(500)]
+    public string? Note { get; set; }
+}
+
+public record IncomingApplicationDto(
+    int Id,
+    int PetId,
+    string PetName,
+    string ApplicantName,
+    ApplicationType Type,
+    ApplicationStatus Status,
+    DateOnly? FosterStartDate,
+    DateTime CreatedAtUtc,
+    DateTime UpdatedAtUtc);

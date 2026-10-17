@@ -35,5 +35,8 @@ public class AdoptionApplicationConfiguration : IEntityTypeConfiguration<Adoptio
         builder.HasIndex(a => new { a.PetId, a.ApplicantId, a.ActiveSlot }).IsUnique();
         builder.HasIndex(a => new { a.ApplicantId, a.Status });
         builder.HasIndex(a => new { a.PetId, a.Status });
+        builder.Property(a => a.Version).IsConcurrencyToken();
+
+        builder.HasIndex(a => new { a.PetId, a.ApprovedAdoptionSlot }).IsUnique();
     }
 }

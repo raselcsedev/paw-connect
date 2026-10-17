@@ -23,6 +23,7 @@ public static class ApplicationMappings
         a.AdditionalNotes,
         a.CreatedAtUtc,
         a.UpdatedAtUtc,
+        a.Version,
         a.History
             .OrderBy(h => h.ChangedAtUtc)
             .ThenBy(h => h.Id)
