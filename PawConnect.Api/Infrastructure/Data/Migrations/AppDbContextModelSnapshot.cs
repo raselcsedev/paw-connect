@@ -281,6 +281,9 @@ namespace PawConnect.Api.Infrastructure.Data.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("varchar(100)");
 
+                    b.Property<Guid>("OwnerId")
+                        .HasColumnType("char(36)");
+
                     b.Property<string>("Requirements")
                         .HasMaxLength(1000)
                         .HasColumnType("varchar(1000)");
@@ -313,6 +316,8 @@ namespace PawConnect.Api.Infrastructure.Data.Migrations
                         .HasColumnType("datetime(6)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("OwnerId", "Status");
 
                     b.HasIndex("Status", "City");
 
@@ -450,6 +455,17 @@ namespace PawConnect.Api.Infrastructure.Data.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("PawConnect.Api.Domain.Entities.Pet", b =>
+                {
+                    b.HasOne("PawConnect.Api.Domain.Entities.ApplicationUser", "Owner")
+                        .WithMany()
+                        .HasForeignKey("OwnerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Owner");
                 });
 
             modelBuilder.Entity("PawConnect.Api.Domain.Entities.PetPhoto", b =>
