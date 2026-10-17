@@ -363,6 +363,44 @@ namespace PawConnect.Api.Infrastructure.Data.Migrations
                     b.ToTable("PetPhotos", (string)null);
                 });
 
+            modelBuilder.Entity("PawConnect.Api.Domain.Entities.RefreshToken", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<DateTime>("ExpiresAtUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<Guid>("FamilyId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime?>("RevokedAtUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("TokenHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("char(36)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FamilyId");
+
+                    b.HasIndex("TokenHash")
+                        .IsUnique();
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("RefreshTokens", (string)null);
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<System.Guid>", b =>
                 {
                     b.HasOne("PawConnect.Api.Domain.Entities.ApplicationRole", null)
@@ -423,6 +461,17 @@ namespace PawConnect.Api.Infrastructure.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("Pet");
+                });
+
+            modelBuilder.Entity("PawConnect.Api.Domain.Entities.RefreshToken", b =>
+                {
+                    b.HasOne("PawConnect.Api.Domain.Entities.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("PawConnect.Api.Domain.Entities.Pet", b =>

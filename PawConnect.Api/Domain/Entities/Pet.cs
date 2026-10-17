@@ -6,6 +6,8 @@ namespace PawConnect.Api.Domain.Entities;
 public class Pet
 {
     public int Id { get; set; }
+    public Guid OwnerId { get; set; }
+    public ApplicationUser Owner { get; set; } = null!;
     public string Name { get; set; } = string.Empty;
     public Species Species { get; set; }
     public string? Breed { get; set; }

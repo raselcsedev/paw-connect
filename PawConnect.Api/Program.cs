@@ -1,11 +1,15 @@
 using System.Text;
 using System.Text.Json.Serialization;
+using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using PawConnect.Api.Application.Interfaces;
 using PawConnect.Api.Application.Services;
+using PawConnect.Api.Domain;
 using PawConnect.Api.Domain.Entities;
+using PawConnect.Api.Domain.Enums;
 using PawConnect.Api.Infrastructure.Data;
 using PawConnect.Api.Infrastructure.Identity;
 using PawConnect.Api.Infrastructure.OpenApi;
@@ -69,9 +73,67 @@ builder.Services
             NameClaimType = "name",
             RoleClaimType = "role"
         };
+
+        options.Events = new JwtBearerEvents
+        {
+            OnTokenValidated = async context =>
+            {
+                var subject = context.Principal?.FindFirst("sub")?.Value;
+
+                if (!Guid.TryParse(subject, out var userId))
+                {
+                    context.Fail("Invalid subject claim.");
+                    return;
+                }
+
+                var db = context.HttpContext.RequestServices.GetRequiredService<AppDbContext>();
+
+                var status = await db.Users
+                    .AsNoTracking()
+                    .Where(u => u.Id == userId)
+                    .Select(u => (AccountStatus?)u.Status)
+                    .FirstOrDefaultAsync(context.HttpContext.RequestAborted);
+
+                if (status is null || status == AccountStatus.Disabled)
+                {
+                    context.Fail("The account is not available.");
+                }
+            }
+        };
     });
 
-builder.Services.AddAuthorization();
+// ---------- Authorization policies ----------
+builder.Services.AddAuthorizationBuilder()
+    .AddPolicy(Policies.ManagePets, policy => policy.RequireRole(Roles.Rescuer))
+    .AddPolicy(Policies.ModeratePets, policy => policy.RequireRole(Roles.Rescuer, Roles.Admin))
+    .AddPolicy(Policies.AdminOnly, policy => policy.RequireRole(Roles.Admin));
+
+// ---------- Rate limiting ----------
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+    options.AddPolicy(Policies.AuthRateLimit, httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 10,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0
+            }));
+
+    options.OnRejected = (context, _) =>
+    {
+        if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))
+        {
+            context.HttpContext.Response.Headers.RetryAfter =
+                ((int)Math.Ceiling(retryAfter.TotalSeconds)).ToString();
+        }
+
+        return ValueTask.CompletedTask;
+    };
+});
 
 // ---------- MVC, JSON, OpenAPI ----------
 builder.Services.AddControllers()
@@ -92,24 +154,38 @@ builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddScoped<IPetService, PetService>();
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IAccountAdminService, AccountAdminService>();
 
 var app = builder.Build();
 
 // ---------- Startup data ----------
-using (var roleScope = app.Services.CreateScope())
+using (var identityScope = app.Services.CreateScope())
 {
-    await IdentitySeeder.SeedRolesAsync(roleScope.ServiceProvider);
+    await IdentitySeeder.SeedRolesAsync(identityScope.ServiceProvider);
+    await IdentitySeeder.SeedAdminAsync(identityScope.ServiceProvider, app.Configuration);
 }
 
 if (app.Environment.IsDevelopment())
 {
     using var devScope = app.Services.CreateScope();
-    var db = devScope.ServiceProvider.GetRequiredService<AppDbContext>();
-    await DevelopmentSeeder.SeedAsync(db);
+
+    var ownerId = await IdentitySeeder.SeedDemoRescuerAsync(devScope.ServiceProvider, app.Configuration);
+
+    if (ownerId is not null)
+    {
+        var db = devScope.ServiceProvider.GetRequiredService<AppDbContext>();
+        await DevelopmentSeeder.SeedAsync(db, ownerId.Value);
+    }
+    else
+    {
+        app.Logger.LogWarning(
+            "Demo pets were not seeded. Set 'Seed:DemoRescuerPassword' in user secrets to enable them.");
+    }
 }
 
 // ---------- Request pipeline (order matters) ----------
 app.UseExceptionHandler();
+app.UseStatusCodePages();
 
 if (app.Environment.IsDevelopment())
 {
@@ -122,6 +198,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();

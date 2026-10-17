@@ -6,7 +6,7 @@ namespace PawConnect.Api.Infrastructure.Data;
 
 public static class DevelopmentSeeder
 {
-    public static async Task SeedAsync(AppDbContext db)
+    public static async Task SeedAsync(AppDbContext db, Guid ownerId)
     {
         if (await db.Pets.AnyAsync())
         {
@@ -30,6 +30,7 @@ public static class DevelopmentSeeder
             pets.Add(new Pet
             {
                 Name = names[i],
+                OwnerId = ownerId,
                 Species = species,
                 Breed = species switch
                 {

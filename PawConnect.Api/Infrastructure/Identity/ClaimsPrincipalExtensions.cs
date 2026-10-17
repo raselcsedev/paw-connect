@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using PawConnect.Api.Application;
 using PawConnect.Api.Domain.Exceptions;
 
 namespace PawConnect.Api.Infrastructure.Identity;
@@ -13,4 +14,10 @@ public static class ClaimsPrincipalExtensions
             ? id
             : throw new AuthenticationFailedException("The access token is not valid.");
     }
+
+    public static CurrentUser ToCurrentUser(this ClaimsPrincipal principal) =>
+        new(principal.GetUserId(), principal.FindFirst("role")?.Value ?? string.Empty);
+
+    public static CurrentUser? ToCurrentUserOrNull(this ClaimsPrincipal principal) =>
+        principal.Identity?.IsAuthenticated == true ? principal.ToCurrentUser() : null;
 }

@@ -29,5 +29,12 @@ public class PetConfiguration : IEntityTypeConfiguration<Pet>
         builder.HasIndex(p => new { p.Status, p.CreatedAtUtc });
         builder.HasIndex(p => new { p.Status, p.Species });
         builder.HasIndex(p => new { p.Status, p.City });
+
+        builder.HasOne(p => p.Owner)
+    .WithMany()
+    .HasForeignKey(p => p.OwnerId)
+    .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasIndex(p => new { p.OwnerId, p.Status });
     }
 }
