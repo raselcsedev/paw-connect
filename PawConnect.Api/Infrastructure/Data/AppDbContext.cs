@@ -13,6 +13,8 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
     public DbSet<Pet> Pets => Set<Pet>();
     public DbSet<PetPhoto> PetPhotos => Set<PetPhoto>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+    public DbSet<AdoptionApplication> Applications => Set<AdoptionApplication>();
+    public DbSet<ApplicationStatusHistory> ApplicationStatusHistory => Set<ApplicationStatusHistory>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -32,7 +34,14 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
             }
         }
 
+        foreach (var entry in ChangeTracker.Entries<AdoptionApplication>())
+        {
+            if (entry.State == EntityState.Modified)
+            {
+                entry.Entity.UpdatedAtUtc = now;
+            }
+        }
+
         return base.SaveChangesAsync(cancellationToken);
     }
 }
-

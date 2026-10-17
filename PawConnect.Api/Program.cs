@@ -102,10 +102,10 @@ builder.Services
         };
     });
 
-// ---------- Authorization policies ----------
 builder.Services.AddAuthorizationBuilder()
     .AddPolicy(Policies.ManagePets, policy => policy.RequireRole(Roles.Rescuer))
     .AddPolicy(Policies.ModeratePets, policy => policy.RequireRole(Roles.Rescuer, Roles.Admin))
+    .AddPolicy(Policies.ApplyForPets, policy => policy.RequireRole(Roles.Adopter))
     .AddPolicy(Policies.AdminOnly, policy => policy.RequireRole(Roles.Admin));
 
 // ---------- Rate limiting ----------
@@ -155,6 +155,7 @@ builder.Services.AddScoped<IPetService, PetService>();
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IAccountAdminService, AccountAdminService>();
+builder.Services.AddScoped<IApplicationService, ApplicationService>();
 
 var app = builder.Build();
 

@@ -125,6 +125,89 @@ namespace PawConnect.Api.Infrastructure.Data.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("PawConnect.Api.Domain.Entities.AdoptionApplication", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("ActiveSlot")
+                        .HasColumnType("int");
+
+                    b.Property<string>("AdditionalNotes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)");
+
+                    b.Property<Guid>("ApplicantId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<string>("CarePlan")
+                        .IsRequired()
+                        .HasMaxLength(1500)
+                        .HasColumnType("varchar(1500)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int?>("FosterDurationWeeks")
+                        .HasColumnType("int");
+
+                    b.Property<DateOnly?>("FosterStartDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("HouseholdInfo")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)");
+
+                    b.Property<string>("LivingArrangement")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<string>("OtherPetsInfo")
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)");
+
+                    b.Property<int>("PetId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("PreviousExperience")
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)");
+
+                    b.Property<string>("ReasonForApplying")
+                        .IsRequired()
+                        .HasMaxLength(1500)
+                        .HasColumnType("varchar(1500)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ApplicantId", "Status");
+
+                    b.HasIndex("PetId", "Status");
+
+                    b.HasIndex("PetId", "ApplicantId", "ActiveSlot")
+                        .IsUnique();
+
+                    b.ToTable("Applications", (string)null);
+                });
+
             modelBuilder.Entity("PawConnect.Api.Domain.Entities.ApplicationRole", b =>
                 {
                     b.Property<Guid>("Id")
@@ -150,6 +233,45 @@ namespace PawConnect.Api.Infrastructure.Data.Migrations
                         .HasDatabaseName("RoleNameIndex");
 
                     b.ToTable("AspNetRoles", (string)null);
+                });
+
+            modelBuilder.Entity("PawConnect.Api.Domain.Entities.ApplicationStatusHistory", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ApplicationId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("ChangedAtUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<Guid>("ChangedByUserId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<string>("FromStatus")
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<string>("ToStatus")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ChangedByUserId");
+
+                    b.HasIndex("ApplicationId", "ChangedAtUtc");
+
+                    b.ToTable("ApplicationStatusHistory", (string)null);
                 });
 
             modelBuilder.Entity("PawConnect.Api.Domain.Entities.ApplicationUser", b =>
@@ -457,6 +579,44 @@ namespace PawConnect.Api.Infrastructure.Data.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("PawConnect.Api.Domain.Entities.AdoptionApplication", b =>
+                {
+                    b.HasOne("PawConnect.Api.Domain.Entities.ApplicationUser", "Applicant")
+                        .WithMany()
+                        .HasForeignKey("ApplicantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("PawConnect.Api.Domain.Entities.Pet", "Pet")
+                        .WithMany()
+                        .HasForeignKey("PetId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Applicant");
+
+                    b.Navigation("Pet");
+                });
+
+            modelBuilder.Entity("PawConnect.Api.Domain.Entities.ApplicationStatusHistory", b =>
+                {
+                    b.HasOne("PawConnect.Api.Domain.Entities.AdoptionApplication", "Application")
+                        .WithMany("History")
+                        .HasForeignKey("ApplicationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("PawConnect.Api.Domain.Entities.ApplicationUser", "ChangedByUser")
+                        .WithMany()
+                        .HasForeignKey("ChangedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Application");
+
+                    b.Navigation("ChangedByUser");
+                });
+
             modelBuilder.Entity("PawConnect.Api.Domain.Entities.Pet", b =>
                 {
                     b.HasOne("PawConnect.Api.Domain.Entities.ApplicationUser", "Owner")
@@ -488,6 +648,11 @@ namespace PawConnect.Api.Infrastructure.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("PawConnect.Api.Domain.Entities.AdoptionApplication", b =>
+                {
+                    b.Navigation("History");
                 });
 
             modelBuilder.Entity("PawConnect.Api.Domain.Entities.Pet", b =>
