@@ -43,8 +43,8 @@ public class PetService : IPetService
             Guid? viewerId = viewer?.Id;
 
             query = query.Where(p =>
-                (p.Status != ListingStatus.Draft && p.Status != ListingStatus.Archived)
-                || p.OwnerId == viewerId);
+    (p.Status != ListingStatus.Draft && p.Status != ListingStatus.Archived && !p.IsSuspended)
+    || p.OwnerId == viewerId);
         }
 
         var pet = await query.FirstOrDefaultAsync(p => p.Id == id, cancellationToken)
@@ -216,7 +216,7 @@ public class PetService : IPetService
             return pet;
         }
 
-        var isHidden = pet.Status is ListingStatus.Draft or ListingStatus.Archived;
+        var isHidden = pet.Status is ListingStatus.Draft or ListingStatus.Archived || pet.IsSuspended;
 
         if (isHidden)
         {

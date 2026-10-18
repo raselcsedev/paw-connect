@@ -19,7 +19,8 @@ public class NotificationPublisher : INotificationPublisher
         NotificationType type,
         string title,
         string message,
-        AdoptionApplication? application = null)
+        AdoptionApplication? application = null,
+        int? petId = null)
     {
         _db.Notifications.Add(new Notification
         {
@@ -28,7 +29,7 @@ public class NotificationPublisher : INotificationPublisher
             Title = title,
             Message = message,
             Application = application,
-            PetId = application?.PetId
+            PetId = application?.PetId ?? petId
         });
     }
 }

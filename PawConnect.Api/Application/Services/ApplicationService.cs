@@ -40,7 +40,7 @@ public class ApplicationService : IApplicationService
             .AsNoTracking()
             .FirstOrDefaultAsync(p => p.Id == request.PetId, cancellationToken);
 
-        if (pet is null || pet.Status is ListingStatus.Draft or ListingStatus.Archived)
+               if (pet is null || pet.Status is ListingStatus.Draft or ListingStatus.Archived || pet.IsSuspended)
         {
             throw new NotFoundException(nameof(Pet), request.PetId);
         }

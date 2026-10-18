@@ -125,19 +125,34 @@ builder.Services.AddRateLimiter(options =>
             }));
     options.AddPolicy(Policies.SubmitRateLimit, httpContext =>
 {
-var key = httpContext.User.FindFirst("sub")?.Value
-      ?? httpContext.Connection.RemoteIpAddress?.ToString()
-      ?? "unknown";
+    var key = httpContext.User.FindFirst("sub")?.Value
+          ?? httpContext.Connection.RemoteIpAddress?.ToString()
+          ?? "unknown";
 
-return RateLimitPartition.GetFixedWindowLimiter(
-key,
-_ => new FixedWindowRateLimiterOptions
-{
-    PermitLimit = 10,
-    Window = TimeSpan.FromHours(1),
-    QueueLimit = 0
+    return RateLimitPartition.GetFixedWindowLimiter(
+    key,
+    _ => new FixedWindowRateLimiterOptions
+    {
+        PermitLimit = 10,
+        Window = TimeSpan.FromHours(1),
+        QueueLimit = 0
+    });
 });
-});
+    options.AddPolicy(Policies.ReportRateLimit, httpContext =>
+    {
+        var key = httpContext.User.FindFirst("sub")?.Value
+                  ?? httpContext.Connection.RemoteIpAddress?.ToString()
+                  ?? "unknown";
+
+        return RateLimitPartition.GetFixedWindowLimiter(
+            key,
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 5,
+                Window = TimeSpan.FromHours(1),
+                QueueLimit = 0
+            });
+    });
 
     options.OnRejected = (context, _) =>
     {
@@ -179,6 +194,8 @@ builder.Services.AddScoped<IPetPhotoService, PetPhotoService>();
 builder.Services.AddScoped<INotificationPublisher, NotificationPublisher>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
+builder.Services.AddScoped<IReportService, ReportService>();
+builder.Services.AddScoped<IModerationService, ModerationService>();
 
 var app = builder.Build();
 

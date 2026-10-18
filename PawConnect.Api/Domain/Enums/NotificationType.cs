@@ -5,5 +5,7 @@ public enum NotificationType
     ApplicationSubmitted,
     ApplicationStatusChanged,
     ApplicationWithdrawn,
-    AdoptionCompleted
+    AdoptionCompleted,
+    ListingModerated,
+    ReportReviewed
 }

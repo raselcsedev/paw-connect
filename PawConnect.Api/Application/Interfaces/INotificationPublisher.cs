@@ -14,5 +14,6 @@ public interface INotificationPublisher
         NotificationType type,
         string title,
         string message,
-        AdoptionApplication? application = null);
+        AdoptionApplication? application = null,
+        int? petId = null);
 }

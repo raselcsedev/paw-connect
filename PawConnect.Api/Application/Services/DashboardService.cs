@@ -171,12 +171,15 @@ public class DashboardService : IDashboardService
 
         var completed = await _db.Applications.CountAsync(a => a.CompletedAtUtc != null, cancellationToken);
 
+        var openReports = await _db.Reports.CountAsync(r => r.Status == ReportStatus.Open, cancellationToken);
+
         return new AdminDashboardDto(
             now,
             new UserStatsDto(usersByStatus.Values.Sum(), usersByStatus, usersByRole, new7, new30),
             new PetStatsDto(petsByStatus.Values.Sum(), petsByStatus),
             new ApplicationStatsDto(
-                applicationsByStatus.Values.Sum(), applicationsByStatus, applicationsByType, completed));
+                applicationsByStatus.Values.Sum(), applicationsByStatus, applicationsByType, completed),
+            openReports);
     }
 
     private static Dictionary<string, int> ToCounts<TEnum>(IEnumerable<(TEnum Key, int Count)> rows)

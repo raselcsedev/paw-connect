@@ -65,7 +65,7 @@ public class PetPhotoService : IPetPhotoService
     {
         var pet = await LoadManageablePetAsync(petId, user, cancellationToken);
 
-        if (pet.Status is ListingStatus.Adopted or ListingStatus.Archived)
+        if (pet.Status is ListingStatus.Draft or ListingStatus.Archived || pet.IsSuspended)
         {
             throw new ConflictException($"A pet that is {pet.Status} cannot receive new photos.");
         }
@@ -217,7 +217,7 @@ public class PetPhotoService : IPetPhotoService
             .FirstOrDefaultAsync(p => p.Id == petId, cancellationToken)
             ?? throw new NotFoundException(nameof(Pet), petId);
 
-        var published = pet.Status is not (ListingStatus.Draft or ListingStatus.Archived);
+        var published = pet.Status is not (ListingStatus.Draft or ListingStatus.Archived) && !pet.IsSuspended;
         var isOwner = viewer is not null && pet.OwnerId == viewer.Id;
         var isAdmin = viewer is not null && viewer.IsAdmin;
 

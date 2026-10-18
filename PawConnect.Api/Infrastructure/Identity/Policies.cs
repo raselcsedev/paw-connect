@@ -8,4 +8,5 @@ public static class Policies
     public const string AdminOnly = "AdminOnly";
     public const string AuthRateLimit = "auth";
     public const string SubmitRateLimit = "submit";
+    public const string ReportRateLimit = "report";
 }

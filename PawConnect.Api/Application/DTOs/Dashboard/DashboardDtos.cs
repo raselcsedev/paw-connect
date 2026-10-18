@@ -35,8 +35,9 @@ public record ApplicationStatsDto(
     IReadOnlyDictionary<string, int> ByType,
     int CompletedAdoptions);
 
-public record AdminDashboardDto(
+    public record AdminDashboardDto(
     DateTime GeneratedAtUtc,
     UserStatsDto Users,
     PetStatsDto Pets,
-    ApplicationStatsDto Applications);
+    ApplicationStatsDto Applications,
+    int OpenReports);
