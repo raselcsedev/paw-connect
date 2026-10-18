@@ -14,15 +14,18 @@ public class ApplicationReviewService : IApplicationReviewService
 {
     private readonly AppDbContext _db;
     private readonly IApplicationService _applications;
+    private readonly INotificationPublisher _notifications;
     private readonly ILogger<ApplicationReviewService> _logger;
 
     public ApplicationReviewService(
         AppDbContext db,
         IApplicationService applications,
+        INotificationPublisher notifications,
         ILogger<ApplicationReviewService> logger)
     {
         _db = db;
         _applications = applications;
+        _notifications = notifications;
         _logger = logger;
     }
 
@@ -119,6 +122,8 @@ public class ApplicationReviewService : IApplicationReviewService
         var oldStatus = application.Status;
         application.ChangeStatus(newStatus, ApplicationActor.PetOwner, owner.Id, request.Note);
 
+        NotifyStatusChanged(application);
+
         await SaveAsync(cancellationToken);
 
         _logger.LogInformation(
@@ -150,9 +155,17 @@ public class ApplicationReviewService : IApplicationReviewService
         application.CompleteAdoption(owner.Id);
         application.Pet.MarkAdopted();
 
+        _notifications.Publish(
+            application.ApplicantId,
+            NotificationType.AdoptionCompleted,
+            "Adoption completed",
+            $"The adoption of {application.Pet.Name} has been completed. Congratulations!",
+            application);
+
         var petId = application.PetId;
 
         var competing = await _db.Applications
+            .Include(a => a.Pet)
             .Where(a => a.PetId == petId && a.Id != id && a.ActiveSlot != null)
             .ToListAsync(cancellationToken);
 
@@ -163,6 +176,8 @@ public class ApplicationReviewService : IApplicationReviewService
                 ApplicationActor.PetOwner,
                 owner.Id,
                 "Closed automatically: this pet has been adopted.");
+
+            NotifyStatusChanged(other);
         }
 
         await SaveAsync(cancellationToken);
@@ -178,6 +193,7 @@ public class ApplicationReviewService : IApplicationReviewService
         int id, CurrentUser applicant, CancellationToken cancellationToken)
     {
         var application = await _db.Applications
+            .Include(a => a.Pet)
             .FirstOrDefaultAsync(a => a.Id == id, cancellationToken)
             ?? throw new NotFoundException("Application", id);
 
@@ -189,12 +205,37 @@ public class ApplicationReviewService : IApplicationReviewService
         application.ChangeStatus(
             ApplicationStatus.Withdrawn, ApplicationActor.Applicant, applicant.Id, "Withdrawn by the applicant.");
 
+        var applicantName = await _db.Users
+            .AsNoTracking()
+            .Where(u => u.Id == applicant.Id)
+            .Select(u => u.DisplayName)
+            .FirstAsync(cancellationToken);
+
+        _notifications.Publish(
+            application.Pet.OwnerId,
+            NotificationType.ApplicationWithdrawn,
+            "Application withdrawn",
+            $"{applicantName} withdrew their application for {application.Pet.Name}.",
+            application);
+
         await SaveAsync(cancellationToken);
 
         _logger.LogInformation(
             "AUDIT: applicant {UserId} withdrew application {ApplicationId}", applicant.Id, id);
 
         return await _applications.GetByIdAsync(id, applicant, cancellationToken);
+    }
+
+    private void NotifyStatusChanged(AdoptionApplication application)
+    {
+        var kind = application.Type == ApplicationType.Adoption ? "adoption" : "foster";
+
+        _notifications.Publish(
+            application.ApplicantId,
+            NotificationType.ApplicationStatusChanged,
+            "Application status changed",
+            $"Your {kind} application for {application.Pet.Name} is now {application.Status}.",
+            application);
     }
 
     private async Task SaveAsync(CancellationToken cancellationToken)

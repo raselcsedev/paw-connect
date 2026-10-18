@@ -16,11 +16,16 @@ public class ApplicationService : IApplicationService
     private const string DuplicateMessage = "You already have an active application for this pet.";
 
     private readonly AppDbContext _db;
+    private readonly INotificationPublisher _notifications;
     private readonly ILogger<ApplicationService> _logger;
 
-    public ApplicationService(AppDbContext db, ILogger<ApplicationService> logger)
+    public ApplicationService(
+        AppDbContext db,
+        INotificationPublisher notifications,
+        ILogger<ApplicationService> logger)
     {
         _db = db;
+        _notifications = notifications;
         _logger = logger;
     }
 
@@ -103,6 +108,21 @@ public class ApplicationService : IApplicationService
         });
 
         _db.Applications.Add(application);
+
+        var applicantName = await _db.Users
+            .AsNoTracking()
+            .Where(u => u.Id == applicant.Id)
+            .Select(u => u.DisplayName)
+            .FirstAsync(cancellationToken);
+
+        var verb = type == ApplicationType.Adoption ? "adopt" : "foster";
+
+        _notifications.Publish(
+            pet.OwnerId,
+            NotificationType.ApplicationSubmitted,
+            "New application",
+            $"{applicantName} applied to {verb} {pet.Name}.",
+            application);
 
         try
         {

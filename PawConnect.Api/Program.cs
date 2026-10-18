@@ -176,6 +176,8 @@ builder.Services.AddScoped<IApplicationReviewService, ApplicationReviewService>(
 builder.Services.Configure<StorageOptions>(builder.Configuration.GetSection(StorageOptions.SectionName));
 builder.Services.AddSingleton<IFileStorage, LocalFileStorage>();
 builder.Services.AddScoped<IPetPhotoService, PetPhotoService>();
+builder.Services.AddScoped<INotificationPublisher, NotificationPublisher>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
 
 var app = builder.Build();
 

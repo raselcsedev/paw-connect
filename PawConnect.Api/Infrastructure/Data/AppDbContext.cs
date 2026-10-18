@@ -15,7 +15,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<AdoptionApplication> Applications => Set<AdoptionApplication>();
     public DbSet<ApplicationStatusHistory> ApplicationStatusHistory => Set<ApplicationStatusHistory>();
-
+    public DbSet<Notification> Notifications => Set<Notification>();
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
