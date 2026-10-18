@@ -34,6 +34,10 @@ public class GlobalExceptionHandler : IExceptionHandler
                 Status = StatusCodes.Status400BadRequest,
                 Title = "One or more validation errors occurred."
             },
+            BadHttpRequestException bad when bad.StatusCode == StatusCodes.Status413PayloadTooLarge =>
+                Build(StatusCodes.Status413PayloadTooLarge, "Payload too large", "The request body is too large."),
+            BadHttpRequestException bad =>
+                Build(bad.StatusCode, "Bad request", "The request could not be processed."),
             _ => Build(StatusCodes.Status500InternalServerError, "An unexpected error occurred", "Please try again later.")
         };
 

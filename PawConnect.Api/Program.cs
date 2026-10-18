@@ -14,6 +14,7 @@ using PawConnect.Api.Infrastructure.Data;
 using PawConnect.Api.Infrastructure.Identity;
 using PawConnect.Api.Infrastructure.OpenApi;
 using PawConnect.Api.Middleware;
+using PawConnect.Api.Infrastructure.FileStorage;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -172,6 +173,9 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IAccountAdminService, AccountAdminService>();
 builder.Services.AddScoped<IApplicationService, ApplicationService>();
 builder.Services.AddScoped<IApplicationReviewService, ApplicationReviewService>();
+builder.Services.Configure<StorageOptions>(builder.Configuration.GetSection(StorageOptions.SectionName));
+builder.Services.AddSingleton<IFileStorage, LocalFileStorage>();
+builder.Services.AddScoped<IPetPhotoService, PetPhotoService>();
 
 var app = builder.Build();
 
