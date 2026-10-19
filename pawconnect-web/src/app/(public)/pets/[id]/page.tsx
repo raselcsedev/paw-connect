@@ -7,20 +7,21 @@ import { buttonClasses } from "@/components/ui/button";
 import { availabilityLabel, formatAge, formatDate, photoSrc, sexLabel, SPECIES_EMOJI } from "@/lib/pets/format";
 import { getPet, getPhotos } from "@/lib/server/pets";
 import type { PetDto } from "@/types/pets";
+import { parsePetId } from "@/lib/pets/id";
 
 type Props = { params: Promise<{ id: string }> };
 
-function parseId(value: string): number {
-  if (!/^\d+$/.test(value)) notFound();
+// function parseId(value: string): number {
+//   if (!/^\d+$/.test(value)) notFound();
 
-  const id = Number(value);
-  if (!Number.isSafeInteger(id) || id < 1) notFound();
+//   const id = Number(value);
+//   if (!Number.isSafeInteger(id) || id < 1) notFound();
 
-  return id;
-}
+//   return id;
+// }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const pet = await getPet(parseId((await params).id));
+  const pet = await getPet(parsePetId((await params).id));
 
   return {
     title: `${pet.name}, ${pet.breed ?? pet.species} in ${pet.city}`,
@@ -89,7 +90,7 @@ function ApplyActions({ pet }: { pet: PetDto }) {
 }
 
 export default async function PetDetailPage({ params }: Props) {
-  const id = parseId((await params).id);
+  const id = parsePetId((await params).id);
   const [pet, photos] = await Promise.all([getPet(id), getPhotos(id)]);
 
   const location = pet.area ? `${pet.area}, ${pet.city}` : pet.city;

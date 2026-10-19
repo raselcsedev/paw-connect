@@ -5,6 +5,7 @@ const tones = {
   orange: "bg-orange-100 text-orange-800",
   green: "bg-emerald-100 text-emerald-800",
   red: "bg-red-100 text-red-800",
+  blue: "bg-sky-100 text-sky-800",
 } as const;
 
 export function Badge({
@@ -15,7 +16,12 @@ export function Badge({
   children: React.ReactNode;
 }) {
   return (
-    <span className={cn("inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium", tones[tone])}>
+    <span
+      className={cn(
+        "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
+        tones[tone],
+      )}
+    >
       {children}
     </span>
   );

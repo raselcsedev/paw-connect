@@ -3,7 +3,11 @@ import { PetCard } from "@/components/pets/pet-card";
 import { Pagination } from "@/components/pets/pagination";
 import { buttonClasses } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/states";
-import { hasActiveFilters, buildHref, type PetFilters } from "@/lib/pets/search";
+import {
+  hasActiveFilters,
+  buildHref,
+  type PetFilters,
+} from "@/lib/pets/search";
 import { searchPets } from "@/lib/server/pets";
 
 export async function PetResults({ filters }: { filters: PetFilters }) {
@@ -24,7 +28,10 @@ export async function PetResults({ filters }: { filters: PetFilters }) {
       </div>
     ) : (
       <div className="mt-6">
-        <EmptyState title="No pets are listed yet" message="New pets are added by rescuers all the time. Please check back soon." />
+        <EmptyState
+          title="No pets are listed yet"
+          message="New pets are added by rescuers all the time. Please check back soon."
+        />
       </div>
     );
   }
@@ -36,7 +43,10 @@ export async function PetResults({ filters }: { filters: PetFilters }) {
           title="That page does not exist"
           message={`There are only ${result.totalPages} pages of results.`}
           action={
-            <Link href={buildHref(filters, { page: 1 })} className={buttonClasses("secondary")}>
+            <Link
+              href={buildHref(filters, { page: 1 })}
+              className={buttonClasses("secondary")}
+            >
               Go to the first page
             </Link>
           }
@@ -58,7 +68,11 @@ export async function PetResults({ filters }: { filters: PetFilters }) {
           <PetCard key={pet.id} pet={pet} />
         ))}
       </ul>
-      <Pagination filters={filters} page={result.page} totalPages={result.totalPages} />
+      <Pagination
+        page={result.page}
+        totalPages={result.totalPages}
+        hrefFor={(target) => buildHref(filters, { page: target })}
+      />
     </section>
   );
 }

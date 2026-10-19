@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { cn } from "@/lib/cn";
-import { buildHref, type PetFilters } from "@/lib/pets/search";
 
 function pageWindow(current: number, total: number): (number | "gap")[] {
   const wanted = new Set([1, total, current - 1, current, current + 1]);
@@ -19,22 +18,20 @@ const itemClass =
   "inline-flex h-10 min-w-10 items-center justify-center rounded-lg border px-3 text-sm font-medium";
 
 export function Pagination({
-  filters,
   page,
   totalPages,
+  hrefFor,
 }: {
-  filters: PetFilters;
   page: number;
   totalPages: number;
+  hrefFor: (page: number) => string;
 }) {
   if (totalPages <= 1) return null;
-
-  const href = (target: number) => buildHref(filters, { page: target });
 
   return (
     <nav aria-label="Pagination" className="mt-8 flex flex-wrap items-center justify-center gap-2">
       {page > 1 ? (
-        <Link href={href(page - 1)} rel="prev" className={cn(itemClass, "border-stone-300 bg-white hover:bg-stone-100")}>
+        <Link href={hrefFor(page - 1)} rel="prev" className={cn(itemClass, "border-stone-300 bg-white hover:bg-stone-100")}>
           Previous
         </Link>
       ) : (
@@ -55,7 +52,7 @@ export function Pagination({
         ) : (
           <Link
             key={entry}
-            href={href(entry)}
+            href={hrefFor(entry)}
             aria-label={`Page ${entry}`}
             className={cn(itemClass, "border-stone-300 bg-white hover:bg-stone-100")}
           >
@@ -65,7 +62,7 @@ export function Pagination({
       )}
 
       {page < totalPages ? (
-        <Link href={href(page + 1)} rel="next" className={cn(itemClass, "border-stone-300 bg-white hover:bg-stone-100")}>
+        <Link href={hrefFor(page + 1)} rel="next" className={cn(itemClass, "border-stone-300 bg-white hover:bg-stone-100")}>
           Next
         </Link>
       ) : (

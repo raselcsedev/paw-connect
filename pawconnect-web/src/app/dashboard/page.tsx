@@ -1,8 +1,10 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 import { StatCard } from "@/components/dashboard/stat-card";
-import { ErrorState } from "@/components/ui/states";
+import { ErrorState, PageSkeleton } from "@/components/ui/states";
 import { useCurrentUser } from "@/hooks/use-auth";
 import { apiFetch } from "@/lib/api-client";
 import type { Role } from "@/types/api";
@@ -35,14 +37,25 @@ function summarize(data: Record<string, unknown>): { label: string; value: numbe
 }
 
 export default function DashboardPage() {
+  const router = useRouter();
   const { data: user } = useCurrentUser();
   const role = user?.role;
 
+  useEffect(() => {
+    if (role === "Adopter") {
+      router.replace("/dashboard/my-applications");
+    }
+  }, [role, router]);
+
   const overview = useQuery({
     queryKey: ["dashboard", role],
-    enabled: role !== undefined,
+    enabled: role !== undefined && role !== "Adopter",
     queryFn: () => apiFetch<Record<string, unknown>>(`/dashboard/${endpoint[role as Role]}`),
   });
+
+  if (role === "Adopter") {
+    return <PageSkeleton />;
+  }
 
   return (
     <div className="space-y-6">
