@@ -1,6 +1,7 @@
 import "server-only";
 import { cookies } from "next/headers";
 import { config } from "@/lib/config";
+import { SESSION_COOKIE } from "@/lib/constants";
 import type { AuthResponse } from "@/types/api";
 
 export const ACCESS_COOKIE = "pc_access";
@@ -21,6 +22,7 @@ function parseUtc(value: string): Date {
 
 export async function setSession(auth: AuthResponse): Promise<void> {
   const store = await cookies();
+  const refreshExpires = parseUtc(auth.refreshTokenExpiresAtUtc);
 
   store.set(ACCESS_COOKIE, auth.accessToken, {
     ...baseOptions,
@@ -31,14 +33,18 @@ export async function setSession(auth: AuthResponse): Promise<void> {
   store.set(REFRESH_COOKIE, auth.refreshToken, {
     ...baseOptions,
     path: REFRESH_PATH,
-    expires: parseUtc(auth.refreshTokenExpiresAtUtc),
+    expires: refreshExpires,
   });
+
+  // A non-secret hint that "a session probably exists". Only the proxy reads it.
+  store.set(SESSION_COOKIE, "1", { ...baseOptions, path: "/", expires: refreshExpires });
 }
 
 export async function clearSession(): Promise<void> {
   const store = await cookies();
   store.delete({ name: ACCESS_COOKIE, path: "/" });
   store.delete({ name: REFRESH_COOKIE, path: REFRESH_PATH });
+  store.delete({ name: SESSION_COOKIE, path: "/" });
 }
 
 export async function getAccessToken(): Promise<string | undefined> {
