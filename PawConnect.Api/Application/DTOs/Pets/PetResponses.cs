@@ -10,7 +10,8 @@ public record PetSummaryDto(
     int AgeInMonths,
     PetSize Size,
     string City,
-    AvailabilityType AvailabilityType);
+    AvailabilityType AvailabilityType,
+    int? PrimaryPhotoId);
 
 public record PetDto(
     int Id,
@@ -31,4 +32,5 @@ public record PetDto(
     string? Area,
     ListingStatus Status,
     DateTime CreatedAtUtc,
-    DateTime UpdatedAtUtc);
+    DateTime UpdatedAtUtc,
+    string? RescuerName);

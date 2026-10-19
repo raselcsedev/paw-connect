@@ -36,7 +36,7 @@ public class PetService : IPetService
 
     public async Task<PetDto> GetByIdAsync(int id, CurrentUser? viewer, CancellationToken cancellationToken)
     {
-        IQueryable<Pet> query = _db.Pets.AsNoTracking();
+        IQueryable<Pet> query = _db.Pets.AsNoTracking().Include(p => p.Owner);
 
         if (viewer is null || !viewer.IsAdmin)
         {
@@ -125,8 +125,12 @@ public class PetService : IPetService
         var items = await query
             .Skip((parameters.Page - 1) * parameters.PageSize)
             .Take(parameters.PageSize)
-            .Select(p => new PetSummaryDto(
-                p.Id, p.Name, p.Species, p.Breed, p.AgeInMonths, p.Size, p.City, p.AvailabilityType))
+                        .Select(p => new PetSummaryDto(
+                p.Id, p.Name, p.Species, p.Breed, p.AgeInMonths, p.Size, p.City, p.AvailabilityType,
+                _db.PetPhotos
+                    .Where(ph => ph.PetId == p.Id && ph.IsPrimary)
+                    .Select(ph => (int?)ph.Id)
+                    .FirstOrDefault()))
             .ToListAsync(cancellationToken);
 
         return new PagedResult<PetSummaryDto>(items, parameters.Page, parameters.PageSize, totalCount);
