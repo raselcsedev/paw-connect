@@ -15,9 +15,18 @@ using PawConnect.Api.Infrastructure.Identity;
 using PawConnect.Api.Infrastructure.OpenApi;
 using PawConnect.Api.Middleware;
 using PawConnect.Api.Infrastructure.FileStorage;
+using System.Net;
+using Microsoft.AspNetCore.HttpOverrides;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor;
+    options.ForwardLimit = 1;
+    options.KnownProxies.Add(IPAddress.Loopback);
+    options.KnownProxies.Add(IPAddress.IPv6Loopback);
+});
 // ---------- Database ----------
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("Connection string 'DefaultConnection' is not configured.");
@@ -225,6 +234,7 @@ if (app.Environment.IsDevelopment())
 }
 
 // ---------- Request pipeline (order matters) ----------
+app.UseForwardedHeaders();
 app.UseExceptionHandler();
 app.UseStatusCodePages();
 
