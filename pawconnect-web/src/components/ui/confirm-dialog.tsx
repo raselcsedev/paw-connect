@@ -12,6 +12,7 @@ type ConfirmDialogProps = {
   loading?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
+  confirmVariant?: "danger" | "primary";
 };
 
 export function ConfirmDialog({
@@ -23,6 +24,7 @@ export function ConfirmDialog({
   loading = false,
   onConfirm,
   onCancel,
+  confirmVariant = "danger",
 }: ConfirmDialogProps) {
   const ref = useRef<HTMLDialogElement>(null);
   const titleId = useId();
@@ -61,7 +63,7 @@ export function ConfirmDialog({
           <Button variant="secondary" onClick={onCancel} disabled={loading}>
             {cancelLabel}
           </Button>
-          <Button variant="danger" onClick={onConfirm} loading={loading}>
+          <Button variant={confirmVariant} onClick={onConfirm} loading={loading}>
             {confirmLabel}
           </Button>
         </div>

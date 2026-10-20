@@ -8,6 +8,8 @@ import { EmptyState, ErrorState } from "@/components/ui/states";
 import { usePet } from "@/hooks/use-rescuer";
 import { ApiError } from "@/lib/api-client";
 import { LISTING_HELP_FOR } from "@/components/rescuer/listing-help";
+import { PhotoManager } from "@/components/rescuer/photo-manager";
+
 
 export function EditPetView({ id }: { id: number }) {
   const { data: pet, isPending, isError, error, refetch } = usePet(id);
@@ -73,7 +75,10 @@ export function EditPetView({ id }: { id: number }) {
             : "This listing is archived and can no longer be edited."}
         </div>
       ) : (
-        <PetForm key={pet.id} pet={pet} />
+        <>
+          <PhotoManager petId={pet.id} petName={pet.name} />
+          <PetForm key={pet.id} pet={pet} />
+        </>
       )}
     </div>
   );

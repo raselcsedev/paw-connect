@@ -16,9 +16,13 @@ export function ListingRowActions({ pet }: { pet: PetDto }) {
   const [confirming, setConfirming] = useState(false);
 
   const editable = pet.status !== "Adopted" && pet.status !== "Archived";
-  const canPublish = (pet.status === "Draft" || pet.status === "Unavailable") && !pet.isSuspended;
+  const canPublish =
+    (pet.status === "Draft" || pet.status === "Unavailable") &&
+    !pet.isSuspended;
   const canPause = pet.status === "Available";
-  const publicPage = (pet.status === "Available" || pet.status === "Adopted") && !pet.isSuspended;
+  const publicPage =
+    (pet.status === "Available" || pet.status === "Adopted") &&
+    !pet.isSuspended;
 
   async function setStatus(status: SettableStatus, success: string) {
     try {
@@ -45,8 +49,19 @@ export function ListingRowActions({ pet }: { pet: PetDto }) {
   return (
     <div className="flex flex-wrap gap-2">
       {editable && (
-        <Link href={`/dashboard/rescuer/pets/${pet.id}/edit`} className={buttonClasses("secondary", "sm")}>
+        <Link
+          href={`/dashboard/rescuer/pets/${pet.id}/edit`}
+          className={buttonClasses("secondary", "sm")}
+        >
           Edit
+        </Link>
+      )}
+      {pet.status !== "Draft" && (
+        <Link
+          href={`/dashboard/rescuer/applications?petId=${pet.id}`}
+          className={buttonClasses("ghost", "sm")}
+        >
+          Applications
         </Link>
       )}
 
@@ -67,7 +82,12 @@ export function ListingRowActions({ pet }: { pet: PetDto }) {
           size="sm"
           disabled={busy}
           loading={change.isPending}
-          onClick={() => setStatus("Unavailable", `${pet.name} is paused and hidden from browsing.`)}
+          onClick={() =>
+            setStatus(
+              "Unavailable",
+              `${pet.name} is paused and hidden from browsing.`,
+            )
+          }
         >
           Pause
         </Button>
@@ -81,7 +101,12 @@ export function ListingRowActions({ pet }: { pet: PetDto }) {
 
       {editable && (
         <>
-          <Button variant="ghost" size="sm" disabled={busy} onClick={() => setConfirming(true)}>
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={busy}
+            onClick={() => setConfirming(true)}
+          >
             Archive
           </Button>
           <ConfirmDialog
