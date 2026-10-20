@@ -7,13 +7,11 @@ import { StatCard } from "@/components/dashboard/stat-card";
 import { ErrorState, PageSkeleton } from "@/components/ui/states";
 import { useCurrentUser } from "@/hooks/use-auth";
 import { apiFetch } from "@/lib/api-client";
-import type { Role } from "@/types/api";
 
-const endpoint: Record<Role, string> = {
-  Adopter: "applicant",
-  Rescuer: "rescuer",
-  Admin: "admin",
-};
+const homes = {
+  Adopter: "/dashboard/my-applications",
+  Rescuer: "/dashboard/rescuer",
+} as const;
 
 function labelFor(key: string): string {
   return key.replace(/([A-Z])/g, " $1").replace(/^./, (c) => c.toUpperCase());
@@ -40,29 +38,30 @@ export default function DashboardPage() {
   const router = useRouter();
   const { data: user } = useCurrentUser();
   const role = user?.role;
+  const home = role === "Adopter" || role === "Rescuer" ? homes[role] : undefined;
 
   useEffect(() => {
-    if (role === "Adopter") {
-      router.replace("/dashboard/my-applications");
+    if (home) {
+      router.replace(home);
     }
-  }, [role, router]);
+  }, [home, router]);
 
   const overview = useQuery({
-    queryKey: ["dashboard", role],
-    enabled: role !== undefined && role !== "Adopter",
-    queryFn: () => apiFetch<Record<string, unknown>>(`/dashboard/${endpoint[role as Role]}`),
+    queryKey: ["dashboard", "admin"],
+    enabled: role === "Admin",
+    queryFn: () => apiFetch<Record<string, unknown>>("/dashboard/admin"),
   });
 
-  if (role === "Adopter") {
+  if (home || !user) {
     return <PageSkeleton />;
   }
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-stone-900">Welcome, {user?.displayName}</h1>
+        <h1 className="text-2xl font-bold text-stone-900">Welcome, {user.displayName}</h1>
         <p className="mt-1 text-sm text-stone-600">
-          Signed in as <span className="font-medium">{user?.role}</span>. Full dashboards arrive in the next lessons.
+          Signed in as <span className="font-medium">{user.role}</span>. The full admin area arrives in the next lessons.
         </p>
       </div>
 

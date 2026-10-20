@@ -2,7 +2,12 @@ export type Species = "Dog" | "Cat" | "Rabbit" | "Bird" | "Other";
 export type PetSize = "Small" | "Medium" | "Large";
 export type PetSex = "Unknown" | "Male" | "Female";
 export type AvailabilityType = "Adoption" | "Foster" | "Both";
-export type ListingStatus = "Draft" | "Available" | "Adopted" | "Unavailable" | "Archived";
+export type ListingStatus =
+  | "Draft"
+  | "Available"
+  | "Adopted"
+  | "Unavailable"
+  | "Archived";
 export type PetSort = "Newest" | "Oldest" | "AgeAsc" | "AgeDesc" | "NameAsc";
 
 export interface PetSummaryDto {
@@ -37,6 +42,8 @@ export interface PetDto {
   status: ListingStatus;
   createdAtUtc: string;
   updatedAtUtc: string;
+  isSuspended: boolean;
+  moderationNote: string | null;
   rescuerName: string | null;
 }
 

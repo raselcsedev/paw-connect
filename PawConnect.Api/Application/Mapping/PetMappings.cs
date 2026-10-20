@@ -6,10 +6,11 @@ namespace PawConnect.Api.Application.Mapping;
 public static class PetMappings
 {
     public static PetDto ToDto(this Pet pet) => new(
-        pet.Id, pet.Name, pet.Species, pet.Breed, pet.AgeInMonths, pet.Size,
-        pet.Sex, pet.Description, pet.HealthStatus, pet.IsVaccinated, pet.IsSpayedNeutered,
-        pet.SpecialCareRequirements, pet.AvailabilityType, pet.Requirements,
-        pet.City, pet.Area, pet.Status, pet.CreatedAtUtc, pet.UpdatedAtUtc, pet.Owner?.DisplayName);
+    pet.Id, pet.Name, pet.Species, pet.Breed, pet.AgeInMonths, pet.Size,
+    pet.Sex, pet.Description, pet.HealthStatus, pet.IsVaccinated, pet.IsSpayedNeutered,
+    pet.SpecialCareRequirements, pet.AvailabilityType, pet.Requirements,
+    pet.City, pet.Area, pet.Status, pet.CreatedAtUtc, pet.UpdatedAtUtc,
+    pet.IsSuspended, pet.ModerationNote, pet.Owner?.DisplayName);
 
 
     public static void ApplyRequest(this Pet pet, CreatePetRequest request)

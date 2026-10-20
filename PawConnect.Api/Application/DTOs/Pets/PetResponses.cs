@@ -33,4 +33,6 @@ public record PetDto(
     ListingStatus Status,
     DateTime CreatedAtUtc,
     DateTime UpdatedAtUtc,
+    bool IsSuspended,
+    string? ModerationNote,
     string? RescuerName);
