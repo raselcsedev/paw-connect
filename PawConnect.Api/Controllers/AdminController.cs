@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using PawConnect.Api.Application.DTOs.Admin;
 using PawConnect.Api.Application.Interfaces;
 using PawConnect.Api.Infrastructure.Identity;
+using PawConnect.Api.Application.DTOs.Common;
 
 namespace PawConnect.Api.Controllers;
 
@@ -30,5 +31,16 @@ public class AdminController : ControllerBase
     {
         await _accounts.SetStatusAsync(User.GetUserId(), id, request.Status!.Value, cancellationToken);
         return NoContent();
+    }
+        /// <summary>All accounts, filterable by role, status and a name or email search.</summary>
+    [HttpGet("users")]
+    [ProducesResponseType(typeof(PagedResult<AdminUserDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<PagedResult<AdminUserDto>>> GetUsers(
+        [FromQuery] AdminUsersQuery query, CancellationToken cancellationToken)
+    {
+        return Ok(await _accounts.GetUsersAsync(query, cancellationToken));
     }
 }

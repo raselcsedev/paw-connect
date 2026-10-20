@@ -4,10 +4,18 @@ import Link from "next/link";
 import { PhotoGallery } from "@/components/pets/photo-gallery";
 import { Badge } from "@/components/ui/badge";
 import { buttonClasses } from "@/components/ui/button";
-import { availabilityLabel, formatAge, formatDate, photoSrc, sexLabel, SPECIES_EMOJI } from "@/lib/pets/format";
+import {
+  availabilityLabel,
+  formatAge,
+  formatDate,
+  photoSrc,
+  sexLabel,
+  SPECIES_EMOJI,
+} from "@/lib/pets/format";
 import { getPet, getPhotos } from "@/lib/server/pets";
 import type { PetDto } from "@/types/pets";
 import { parsePetId } from "@/lib/pets/id";
+import { ReportListingButton } from "@/components/pets/report-button";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -25,7 +33,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   return {
     title: `${pet.name}, ${pet.breed ?? pet.species} in ${pet.city}`,
-    description: pet.description ? pet.description.slice(0, 160) : `Meet ${pet.name} on PawConnect.`,
+    description: pet.description
+      ? pet.description.slice(0, 160)
+      : `Meet ${pet.name} on PawConnect.`,
   };
 }
 
@@ -36,13 +46,21 @@ function yesNo(value: boolean): string {
 function Fact({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <dt className="text-xs font-medium uppercase tracking-wide text-stone-500">{label}</dt>
+      <dt className="text-xs font-medium uppercase tracking-wide text-stone-500">
+        {label}
+      </dt>
       <dd className="mt-0.5 text-sm font-medium text-stone-900">{value}</dd>
     </div>
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
   return (
     <section className="rounded-2xl border border-stone-200 bg-white p-5">
       <h2 className="text-lg font-semibold text-stone-900">{title}</h2>
@@ -54,7 +72,10 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 function ApplyActions({ pet }: { pet: PetDto }) {
   if (pet.status !== "Available") {
     return (
-      <div role="status" className="rounded-xl bg-stone-100 p-4 text-sm text-stone-700">
+      <div
+        role="status"
+        className="rounded-xl bg-stone-100 p-4 text-sm text-stone-700"
+      >
         {pet.status === "Adopted"
           ? `${pet.name} has found a home. Thank you to everyone who applied!`
           : `${pet.name} is not accepting applications right now.`}
@@ -73,14 +94,21 @@ function ApplyActions({ pet }: { pet: PetDto }) {
   return (
     <div className="flex flex-col gap-2 sm:flex-row lg:flex-col">
       {canAdopt && (
-        <Link href={`/pets/${pet.id}/apply?type=Adoption`} className={buttonClasses("primary", "lg", "w-full")}>
+        <Link
+          href={`/pets/${pet.id}/apply?type=Adoption`}
+          className={buttonClasses("primary", "lg", "w-full")}
+        >
           Apply to adopt
         </Link>
       )}
       {canFoster && (
         <Link
           href={`/pets/${pet.id}/apply?type=Foster`}
-          className={buttonClasses(canAdopt ? "secondary" : "primary", "lg", "w-full")}
+          className={buttonClasses(
+            canAdopt ? "secondary" : "primary",
+            "lg",
+            "w-full",
+          )}
         >
           Apply to foster
         </Link>
@@ -108,7 +136,10 @@ export default async function PetDetailPage({ params }: Props) {
           <PhotoGallery
             name={pet.name}
             fallbackEmoji={SPECIES_EMOJI[pet.species]}
-            photos={photos.map((photo) => ({ id: photo.id, src: photoSrc(pet.id, photo.id) }))}
+            photos={photos.map((photo) => ({
+              id: photo.id,
+              src: photoSrc(pet.id, photo.id),
+            }))}
           />
         </div>
 
@@ -119,11 +150,19 @@ export default async function PetDetailPage({ params }: Props) {
               {pet.breed ?? pet.species} · {formatAge(pet.ageInMonths)}
             </p>
             <div className="mt-3 flex flex-wrap gap-1.5">
-              <Badge tone="orange">{availabilityLabel(pet.availabilityType)}</Badge>
+              <Badge tone="orange">
+                {availabilityLabel(pet.availabilityType)}
+              </Badge>
               <Badge>{pet.size}</Badge>
               {pet.isVaccinated && <Badge tone="green">Vaccinated</Badge>}
-              {pet.isSpayedNeutered && <Badge tone="green">Spayed / neutered</Badge>}
-              {pet.status !== "Available" && <Badge tone="red">{pet.status === "Adopted" ? "Adopted" : "Unavailable"}</Badge>}
+              {pet.isSpayedNeutered && (
+                <Badge tone="green">Spayed / neutered</Badge>
+              )}
+              {pet.status !== "Available" && (
+                <Badge tone="red">
+                  {pet.status === "Adopted" ? "Adopted" : "Unavailable"}
+                </Badge>
+              )}
             </div>
           </div>
 
@@ -140,9 +179,16 @@ export default async function PetDetailPage({ params }: Props) {
 
           {pet.rescuerName && (
             <div className="rounded-2xl border border-stone-200 bg-white p-5 text-sm">
-              <p className="text-xs font-medium uppercase tracking-wide text-stone-500">Listed by</p>
-              <p className="mt-0.5 font-medium text-stone-900">{pet.rescuerName}</p>
-              <p className="mt-1 text-stone-600">Contact the rescuer through your application.</p>
+              <p className="text-xs font-medium uppercase tracking-wide text-stone-500">
+                Listed by
+              </p>
+              <ReportListingButton petId={pet.id} petName={pet.name} />
+              <p className="mt-0.5 font-medium text-stone-900">
+                {pet.rescuerName}
+              </p>
+              <p className="mt-1 text-stone-600">
+                Contact the rescuer through your application.
+              </p>
             </div>
           )}
         </aside>
@@ -150,13 +196,18 @@ export default async function PetDetailPage({ params }: Props) {
 
       <div className="mt-8 grid gap-4 lg:grid-cols-2">
         <Section title={`About ${pet.name}`}>
-          <p className="whitespace-pre-line">{pet.description ?? "The rescuer has not added a description yet."}</p>
+          <p className="whitespace-pre-line">
+            {pet.description ?? "The rescuer has not added a description yet."}
+          </p>
         </Section>
 
         <Section title="Health and care">
           <dl className="grid grid-cols-2 gap-4">
             <Fact label="Vaccinated" value={yesNo(pet.isVaccinated)} />
-            <Fact label="Spayed / neutered" value={yesNo(pet.isSpayedNeutered)} />
+            <Fact
+              label="Spayed / neutered"
+              value={yesNo(pet.isSpayedNeutered)}
+            />
           </dl>
           {pet.healthStatus && <p>{pet.healthStatus}</p>}
           {pet.specialCareRequirements ? (
@@ -165,12 +216,20 @@ export default async function PetDetailPage({ params }: Props) {
               {pet.specialCareRequirements}
             </p>
           ) : (
-            <p className="text-stone-500">No special care requirements listed.</p>
+            <p className="text-stone-500">
+              No special care requirements listed.
+            </p>
           )}
         </Section>
 
         {pet.requirements && (
-          <Section title={pet.availabilityType === "Foster" ? "Foster requirements" : "Adoption requirements"}>
+          <Section
+            title={
+              pet.availabilityType === "Foster"
+                ? "Foster requirements"
+                : "Adoption requirements"
+            }
+          >
             <p className="whitespace-pre-line">{pet.requirements}</p>
           </Section>
         )}

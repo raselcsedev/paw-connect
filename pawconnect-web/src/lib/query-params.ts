@@ -15,3 +15,15 @@ export function integer(value: string | undefined, min: number, max: number): nu
   const number = Number(value);
   return number >= min && number <= max ? number : undefined;
 }
+
+export function toSearchParams(values: Record<string, string | number | boolean | undefined>): URLSearchParams {
+  const params = new URLSearchParams();
+
+  for (const [key, value] of Object.entries(values)) {
+    if (value === undefined || value === false || value === "") continue;
+    if (key === "page" && value === 1) continue;
+    params.set(key, String(value));
+  }
+
+  return params;
+}

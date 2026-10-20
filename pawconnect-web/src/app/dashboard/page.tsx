@@ -1,85 +1,24 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { StatCard } from "@/components/dashboard/stat-card";
-import { ErrorState, PageSkeleton } from "@/components/ui/states";
+import { PageSkeleton } from "@/components/ui/states";
 import { useCurrentUser } from "@/hooks/use-auth";
-import { apiFetch } from "@/lib/api-client";
 
 const homes = {
   Adopter: "/dashboard/my-applications",
   Rescuer: "/dashboard/rescuer",
+  Admin: "/dashboard/admin",
 } as const;
-
-function labelFor(key: string): string {
-  return key.replace(/([A-Z])/g, " $1").replace(/^./, (c) => c.toUpperCase());
-}
-
-function summarize(data: Record<string, unknown>): { label: string; value: number }[] {
-  const rows: { label: string; value: number }[] = [];
-
-  for (const [key, value] of Object.entries(data)) {
-    if (typeof value === "number") {
-      rows.push({ label: labelFor(key), value });
-    } else if (value && typeof value === "object" && "total" in value) {
-      const total = (value as { total: unknown }).total;
-      if (typeof total === "number") {
-        rows.push({ label: `${labelFor(key)} total`, value: total });
-      }
-    }
-  }
-
-  return rows;
-}
 
 export default function DashboardPage() {
   const router = useRouter();
   const { data: user } = useCurrentUser();
-  const role = user?.role;
-  const home = role === "Adopter" || role === "Rescuer" ? homes[role] : undefined;
+  const home = user ? homes[user.role] : undefined;
 
   useEffect(() => {
-    if (home) {
-      router.replace(home);
-    }
+    if (home) router.replace(home);
   }, [home, router]);
 
-  const overview = useQuery({
-    queryKey: ["dashboard", "admin"],
-    enabled: role === "Admin",
-    queryFn: () => apiFetch<Record<string, unknown>>("/dashboard/admin"),
-  });
-
-  if (home || !user) {
-    return <PageSkeleton />;
-  }
-
-  return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-stone-900">Welcome, {user.displayName}</h1>
-        <p className="mt-1 text-sm text-stone-600">
-          Signed in as <span className="font-medium">{user.role}</span>. The full admin area arrives in the next lessons.
-        </p>
-      </div>
-
-      {overview.isError ? (
-        <ErrorState message={overview.error.message} onRetry={() => overview.refetch()} />
-      ) : overview.isPending ? (
-        <div className="grid animate-pulse gap-4 sm:grid-cols-2 lg:grid-cols-4" role="status" aria-label="Loading">
-          {[0, 1, 2, 3].map((i) => (
-            <div key={i} className="h-28 rounded-xl bg-stone-200" />
-          ))}
-        </div>
-      ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {summarize(overview.data).map((row) => (
-            <StatCard key={row.label} label={row.label} value={row.value} />
-          ))}
-        </div>
-      )}
-    </div>
-  );
+  return <PageSkeleton />;
 }
