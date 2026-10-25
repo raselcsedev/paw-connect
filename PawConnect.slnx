@@ -1,3 +1,4 @@
 <Solution>
   <Project Path="PawConnect.Api/PawConnect.Api.csproj" />
+  <Project Path="PawConnect.Tests/PawConnect.Tests.csproj" />
 </Solution>
