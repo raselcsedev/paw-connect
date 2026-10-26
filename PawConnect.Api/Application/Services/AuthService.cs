@@ -246,4 +246,79 @@ public class AuthService : IAuthService
 
         return "General";
     }
+
+        public async Task<UserDto> UpdateProfileAsync(
+        Guid userId, UpdateProfileRequest request, CancellationToken cancellationToken)
+    {
+        var user = await FindActiveUserAsync(userId);
+
+        user.DisplayName = request.DisplayName.Trim();
+
+        var result = await _users.UpdateAsync(user);
+        if (!result.Succeeded)
+        {
+            throw Invalid("DisplayName", string.Join(" ", result.Errors.Select(e => e.Description)));
+        }
+
+        _logger.LogInformation("User {UserId} updated their profile", userId);
+        return ToUserDto(user, await GetRoleAsync(user));
+    }
+
+    public async Task<AuthResponse> ChangePasswordAsync(
+        Guid userId, ChangePasswordRequest request, CancellationToken cancellationToken)
+    {
+        var user = await FindActiveUserAsync(userId);
+
+        if (await _users.IsLockedOutAsync(user))
+        {
+            throw Invalid("CurrentPassword", "Too many failed attempts. Try again later.");
+        }
+
+        if (!await _users.CheckPasswordAsync(user, request.CurrentPassword))
+        {
+            await _users.AccessFailedAsync(user);
+            _logger.LogWarning("Wrong current password while changing the password of user {UserId}", userId);
+            throw Invalid("CurrentPassword", "The current password is incorrect.");
+        }
+
+        await _users.ResetAccessFailedCountAsync(user);
+
+        if (request.CurrentPassword == request.NewPassword)
+        {
+            throw Invalid("NewPassword", "Choose a password that is different from your current one.");
+        }
+
+        var changed = await _users.ChangePasswordAsync(user, request.CurrentPassword, request.NewPassword);
+        if (!changed.Succeeded)
+        {
+            throw Invalid("NewPassword", string.Join(" ", changed.Errors.Select(e => e.Description)));
+        }
+
+        var now = DateTime.UtcNow;
+
+        await _db.RefreshTokens
+            .Where(t => t.UserId == userId && t.RevokedAtUtc == null)
+            .ExecuteUpdateAsync(s => s.SetProperty(t => t.RevokedAtUtc, (DateTime?)now), cancellationToken);
+
+        _logger.LogInformation("AUDIT: user {UserId} changed their password and all sessions were revoked", userId);
+
+        return await IssueTokensAsync(user, await GetRoleAsync(user), Guid.NewGuid(), cancellationToken);
+    }
+
+    private async Task<ApplicationUser> FindActiveUserAsync(Guid userId)
+    {
+        var user = await _users.FindByIdAsync(userId.ToString());
+
+        if (user is null || user.Status == AccountStatus.Disabled)
+        {
+            throw new AuthenticationFailedException("The account is not available.");
+        }
+
+        return user;
+    }
+
+    private static AppValidationException Invalid(string field, string message) =>
+        new(new Dictionary<string, string[]> { [field] = new[] { message } });
+
+
 }

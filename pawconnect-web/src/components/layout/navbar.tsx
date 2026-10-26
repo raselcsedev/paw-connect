@@ -49,10 +49,17 @@ export function Navbar() {
   ) : user ? (
     <div className="flex items-center gap-3">
       <NotificationBell />
-      <div className="text-right leading-tight">
-        <p className="text-sm font-medium text-stone-900">{user.displayName}</p>
-        <p className="text-xs text-stone-500">{user.role}</p>
-      </div>
+      <Link
+        href="/dashboard/profile"
+        onClick={closeMenu}
+        aria-label={`Your profile, signed in as ${user.displayName}`}
+        className="rounded-lg px-2 py-1 text-right leading-tight hover:bg-stone-100 focus-visible:outline-2 focus-visible:outline-orange-600"
+      >
+        <span className="block text-sm font-medium text-stone-900">
+          {user.displayName}
+        </span>
+        <span className="block text-xs text-stone-500">{user.role}</span>
+      </Link>
       <Button
         variant="secondary"
         size="sm"

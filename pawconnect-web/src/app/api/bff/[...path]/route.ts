@@ -14,6 +14,7 @@ const ALLOWED = [
   /^notifications(\/|$)/,
   /^dashboard\//,
   /^admin\//,
+  /^account\/profile$/,
 ];
 
 const FORWARD_REQUEST_HEADERS = ["content-type", "accept", "accept-language"];
@@ -48,7 +49,11 @@ function buildTarget(segments: string[], search: string): string | null {
   return `/api/${segments.map(encodeURIComponent).join("/")}${search}`;
 }
 
-function send(request: Request, target: string, accessToken?: string): Promise<Response> {
+function send(
+  request: Request,
+  target: string,
+  accessToken?: string,
+): Promise<Response> {
   const headers = new Headers(clientIpHeaders(request));
 
   for (const name of FORWARD_REQUEST_HEADERS) {
@@ -85,7 +90,10 @@ function toResponse(upstream: Response): Response {
   return new Response(upstream.body, { status: upstream.status, headers });
 }
 
-async function handler(request: Request, context: RouteContext): Promise<Response> {
+async function handler(
+  request: Request,
+  context: RouteContext,
+): Promise<Response> {
   const blocked = assertSameOrigin(request);
   if (blocked) {
     return blocked;
@@ -106,7 +114,11 @@ async function handler(request: Request, context: RouteContext): Promise<Respons
       const renewal = await renewSession();
 
       if (renewal.status === "unavailable") {
-        return problem(503, "Service unavailable", "Please try again in a moment.");
+        return problem(
+          503,
+          "Service unavailable",
+          "Please try again in a moment.",
+        );
       }
 
       if (renewal.status === "renewed") {
@@ -117,7 +129,12 @@ async function handler(request: Request, context: RouteContext): Promise<Respons
 
     let upstream = await send(request, target, accessToken);
 
-    if (upstream.status === 401 && accessToken && !renewedNow && !hasBody(request)) {
+    if (
+      upstream.status === 401 &&
+      accessToken &&
+      !renewedNow &&
+      !hasBody(request)
+    ) {
       const renewal = await renewSession();
 
       if (renewal.status === "renewed") {
@@ -127,7 +144,11 @@ async function handler(request: Request, context: RouteContext): Promise<Respons
 
     return toResponse(upstream);
   } catch {
-    return problem(502, "Service unavailable", "The server is temporarily unavailable.");
+    return problem(
+      502,
+      "Service unavailable",
+      "The server is temporarily unavailable.",
+    );
   }
 }
 

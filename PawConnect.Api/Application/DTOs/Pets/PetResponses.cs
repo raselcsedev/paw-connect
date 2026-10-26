@@ -35,4 +35,5 @@ public record PetDto(
     DateTime UpdatedAtUtc,
     bool IsSuspended,
     string? ModerationNote,
+    bool IsOwner,
     string? RescuerName);

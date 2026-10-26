@@ -15,9 +15,12 @@ public class PetService : IPetService
     private readonly AppDbContext _db;
     private readonly ILogger<PetService> _logger;
 
-    public PetService(AppDbContext db, ILogger<PetService> logger)
+    private readonly INotificationPublisher _notifications;
+
+    public PetService(AppDbContext db, INotificationPublisher notifications, ILogger<PetService> logger)
     {
         _db = db;
+        _notifications = notifications;
         _logger = logger;
     }
 
@@ -204,9 +207,41 @@ public class PetService : IPetService
         }
 
         pet.Archive();
-        await _db.SaveChangesAsync(cancellationToken);
 
-        _logger.LogInformation("AUDIT: user {UserId} ({Role}) archived pet {PetId}", user.Id, user.Role, id);
+        var open = await _db.Applications
+            .Where(a => a.PetId == id && a.ActiveSlot != null && a.CompletedAtUtc == null)
+            .ToListAsync(cancellationToken);
+
+        foreach (var application in open)
+        {
+            application.ChangeStatus(
+                ApplicationStatus.Rejected,
+                ApplicationActor.PetOwner,
+                user.Id,
+                "Closed automatically: this listing was archived.");
+
+            var kind = application.Type == ApplicationType.Adoption ? "adoption" : "foster";
+
+            _notifications.Publish(
+                application.ApplicantId,
+                NotificationType.ApplicationStatusChanged,
+                "Application status changed",
+                $"Your {kind} application for {pet.Name} is now {application.Status}.",
+                application);
+        }
+
+        try
+        {
+            await _db.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw new ConflictException("The listing changed while it was being archived. Please try again.");
+        }
+
+        _logger.LogInformation(
+            "AUDIT: user {UserId} ({Role}) archived pet {PetId}; {Closed} open application(s) closed",
+            user.Id, user.Role, id, open.Count);
     }
 
     private async Task<Pet> LoadForManagementAsync(

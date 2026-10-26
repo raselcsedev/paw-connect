@@ -30,6 +30,7 @@ public sealed class LocalFileStorageTests : IDisposable
     }
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;
+        private static MemoryStream Bytes(params byte[] data) => new(data);
 
     [Fact]
     public void Constructor_CreatesTheStorageFolder() => Assert.True(Directory.Exists(_root));

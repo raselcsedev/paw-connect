@@ -44,6 +44,7 @@ export interface PetDto {
   updatedAtUtc: string;
   isSuspended: boolean;
   moderationNote: string | null;
+  isOwner: boolean;
   rescuerName: string | null;
 }
 

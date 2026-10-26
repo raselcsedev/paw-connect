@@ -72,21 +72,11 @@ public class HealthController : ControllerBase
     }
 
     [HttpGet]
-    public IActionResult Get()
-    {
-        return Ok(new
-        {
-            status = "healthy",
-            service = "PawConnect.Api",
-            timeUtc = DateTime.UtcNow
-        });
-    }
+    public IActionResult Get() =>
+        Ok(new { status = "healthy", service = "PawConnect.Api", timeUtc = DateTime.UtcNow });
 
     [HttpGet("version")]
-    public IActionResult GetVersion()
-    {
-        return Ok(new { version = "0.1.0" });
-    }
+    public IActionResult GetVersion() => Ok(new { version = "0.1.0" });
 
     [HttpGet("db")]
     public async Task<IActionResult> GetDatabase(CancellationToken cancellationToken)
