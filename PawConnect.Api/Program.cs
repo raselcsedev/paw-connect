@@ -119,34 +119,96 @@ builder.Services.AddAuthorizationBuilder()
     .AddPolicy(Policies.AdminOnly, policy => policy.RequireRole(Roles.Admin));
 
 // ---------- Rate limiting ----------
+// builder.Services.AddRateLimiter(options =>
+// {
+//     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+//     options.AddPolicy(Policies.AuthRateLimit, httpContext =>
+//         RateLimitPartition.GetFixedWindowLimiter(
+//             httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+//             _ => new FixedWindowRateLimiterOptions
+//             {
+//                 PermitLimit = 10,
+//                 Window = TimeSpan.FromMinutes(1),
+//                 QueueLimit = 0
+//             }));
+//     options.AddPolicy(Policies.SubmitRateLimit, httpContext =>
+// {
+//     var key = httpContext.User.FindFirst("sub")?.Value
+//           ?? httpContext.Connection.RemoteIpAddress?.ToString()
+//           ?? "unknown";
+
+//     return RateLimitPartition.GetFixedWindowLimiter(
+//     key,
+//     _ => new FixedWindowRateLimiterOptions
+//     {
+//         PermitLimit = 10,
+//         Window = TimeSpan.FromHours(1),
+//         QueueLimit = 0
+//     });
+// });
+//     options.AddPolicy(Policies.ReportRateLimit, httpContext =>
+//     {
+//         var key = httpContext.User.FindFirst("sub")?.Value
+//                   ?? httpContext.Connection.RemoteIpAddress?.ToString()
+//                   ?? "unknown";
+
+//         return RateLimitPartition.GetFixedWindowLimiter(
+//             key,
+//             _ => new FixedWindowRateLimiterOptions
+//             {
+//                 PermitLimit = 5,
+//                 Window = TimeSpan.FromHours(1),
+//                 QueueLimit = 0
+//             });
+//     });
+
+//     options.OnRejected = (context, _) =>
+//     {
+//         if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))
+//         {
+//             context.HttpContext.Response.Headers.RetryAfter =
+//                 ((int)Math.Ceiling(retryAfter.TotalSeconds)).ToString();
+//         }
+
+//         return ValueTask.CompletedTask;
+//     };
+// });
+
+// ---------- Rate limiting ----------
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 
+    // Limits are read from configuration when a client is first seen, so tests (and operators)
+    // can change them without code changes. Defaults match the original values.
+    FixedWindowRateLimiterOptions Window(HttpContext context, string name, int permits, TimeSpan window)
+    {
+        var section = context.RequestServices.GetRequiredService<IConfiguration>().GetSection($"RateLimiting:{name}");
+
+        return new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = section.GetValue("PermitLimit", permits),
+            Window = TimeSpan.FromMinutes(section.GetValue("WindowMinutes", window.TotalMinutes)),
+            QueueLimit = 0
+        };
+    }
+
     options.AddPolicy(Policies.AuthRateLimit, httpContext =>
         RateLimitPartition.GetFixedWindowLimiter(
             httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-            _ => new FixedWindowRateLimiterOptions
-            {
-                PermitLimit = 10,
-                Window = TimeSpan.FromMinutes(1),
-                QueueLimit = 0
-            }));
-    options.AddPolicy(Policies.SubmitRateLimit, httpContext =>
-{
-    var key = httpContext.User.FindFirst("sub")?.Value
-          ?? httpContext.Connection.RemoteIpAddress?.ToString()
-          ?? "unknown";
+            _ => Window(httpContext, "Auth", 10, TimeSpan.FromMinutes(1))));
 
-    return RateLimitPartition.GetFixedWindowLimiter(
-    key,
-    _ => new FixedWindowRateLimiterOptions
+    options.AddPolicy(Policies.SubmitRateLimit, httpContext =>
     {
-        PermitLimit = 10,
-        Window = TimeSpan.FromHours(1),
-        QueueLimit = 0
+        var key = httpContext.User.FindFirst("sub")?.Value
+                  ?? httpContext.Connection.RemoteIpAddress?.ToString()
+                  ?? "unknown";
+
+        return RateLimitPartition.GetFixedWindowLimiter(
+            key, _ => Window(httpContext, "Submit", 10, TimeSpan.FromHours(1)));
     });
-});
+
     options.AddPolicy(Policies.ReportRateLimit, httpContext =>
     {
         var key = httpContext.User.FindFirst("sub")?.Value
@@ -154,13 +216,7 @@ builder.Services.AddRateLimiter(options =>
                   ?? "unknown";
 
         return RateLimitPartition.GetFixedWindowLimiter(
-            key,
-            _ => new FixedWindowRateLimiterOptions
-            {
-                PermitLimit = 5,
-                Window = TimeSpan.FromHours(1),
-                QueueLimit = 0
-            });
+            key, _ => Window(httpContext, "Report", 5, TimeSpan.FromHours(1)));
     });
 
     options.OnRejected = (context, _) =>
