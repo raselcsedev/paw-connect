@@ -184,7 +184,7 @@ public class PetService : IPetService
     public async Task<PetDto> ChangeAvailabilityAsync(
         int id, ChangeAvailabilityRequest request, CurrentUser user, CancellationToken cancellationToken)
     {
-        var pet = await LoadForManagementAsync(id, user, allowAdmin: true, cancellationToken);
+        var pet = await LoadForManagementAsync(id, user, allowAdmin: false, cancellationToken);
 
         var oldStatus = pet.Status;
         pet.SetAvailability(request.Status!.Value);
@@ -199,7 +199,7 @@ public class PetService : IPetService
 
     public async Task ArchiveAsync(int id, CurrentUser user, CancellationToken cancellationToken)
     {
-        var pet = await LoadForManagementAsync(id, user, allowAdmin: true, cancellationToken);
+        var pet = await LoadForManagementAsync(id, user, allowAdmin: false, cancellationToken);
 
         if (pet.Status == ListingStatus.Archived)
         {

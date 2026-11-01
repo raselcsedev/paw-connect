@@ -65,6 +65,8 @@ public sealed class ApiFactory : WebApplicationFactory<ApiAssemblyMarker>, IAsyn
         });
     }
 
+
+    public string StorageRoot => _storageRoot;
     public HttpClient CreateApiClient() =>
         CreateClient(new WebApplicationFactoryClientOptions
         {

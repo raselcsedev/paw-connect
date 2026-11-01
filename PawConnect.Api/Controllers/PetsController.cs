@@ -93,7 +93,7 @@ public class PetsController : ControllerBase
 
     /// <summary>Archives the listing (soft delete). Archiving twice is allowed.</summary>
     [HttpDelete("{id:int}")]
-    [Authorize(Policy = Policies.ModeratePets)]
+    [Authorize(Policy = Policies.ManagePets)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
