@@ -17,6 +17,7 @@ using PawConnect.Api.Middleware;
 using PawConnect.Api.Infrastructure.FileStorage;
 using System.Net;
 using Microsoft.AspNetCore.HttpOverrides;
+using PawConnect.Api.Infrastructure.Data.Seeding;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -265,6 +266,31 @@ builder.Services.AddScoped<IModerationService, ModerationService>();
 var app = builder.Build();
 
 // ---------- Startup data ----------
+// using (var identityScope = app.Services.CreateScope())
+// {
+//     await IdentitySeeder.SeedRolesAsync(identityScope.ServiceProvider);
+//     await IdentitySeeder.SeedAdminAsync(identityScope.ServiceProvider, app.Configuration);
+// }
+
+// if (app.Environment.IsDevelopment())
+// {
+//     using var devScope = app.Services.CreateScope();
+
+//     var ownerId = await IdentitySeeder.SeedDemoRescuerAsync(devScope.ServiceProvider, app.Configuration);
+
+//     if (ownerId is not null)
+//     {
+//         var db = devScope.ServiceProvider.GetRequiredService<AppDbContext>();
+//         await DevelopmentSeeder.SeedAsync(db, ownerId.Value);
+//     }
+//     else
+//     {
+//         app.Logger.LogWarning(
+//             "Demo pets were not seeded. Set 'Seed:DemoRescuerPassword' in user secrets to enable them.");
+//     }
+// }
+
+// ---------- Startup data ----------
 using (var identityScope = app.Services.CreateScope())
 {
     await IdentitySeeder.SeedRolesAsync(identityScope.ServiceProvider);
@@ -273,19 +299,15 @@ using (var identityScope = app.Services.CreateScope())
 
 if (app.Environment.IsDevelopment())
 {
-    using var devScope = app.Services.CreateScope();
-
-    var ownerId = await IdentitySeeder.SeedDemoRescuerAsync(devScope.ServiceProvider, app.Configuration);
-
-    if (ownerId is not null)
+    try
     {
-        var db = devScope.ServiceProvider.GetRequiredService<AppDbContext>();
-        await DevelopmentSeeder.SeedAsync(db, ownerId.Value);
+        using var demoScope = app.Services.CreateScope();
+        await DemoDataSeeder.SeedAsync(demoScope.ServiceProvider);
     }
-    else
+    catch (Exception ex)
     {
-        app.Logger.LogWarning(
-            "Demo pets were not seeded. Set 'Seed:DemoRescuerPassword' in user secrets to enable them.");
+        // The API must still start if the demo data cannot be created.
+        app.Logger.LogError(ex, "Demo data could not be created. The API keeps running without it.");
     }
 }
 
